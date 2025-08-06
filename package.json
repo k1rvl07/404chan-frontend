@@ -1,0 +1,43 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0 -p 3000 --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "biome": "biome check --unsafe --write ."
+  },
+  "dependencies": {
+    "antd": "^5.26.7",
+    "next": "15.4.5",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@emotion/styled": "^11.14.1",
+    "@tailwindcss/postcss": "^4",
+    "@tanstack/react-query": "^5.84.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.16",
+    "axios": "^1.11.0",
+    "classnames": "^2.5.1",
+    "cssnano": "^7.0.7",
+    "dotenv": "^16.5.0",
+    "framer-motion": "^12.18.1",
+    "postcss": "^8.5.6",
+    "postcss-flexbugs-fixes": "^5.0.2",
+    "postcss-pxtorem": "^6.1.0",
+    "postcss-sort-media-queries": "^5.2.0",
+    "react-responsive": "^10.0.1",
+    "reactcci": "^1.14.0",
+    "socket.io-client": "^4.8.1",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5",
+    "zustand": "^5.0.7"
+  }
+}
