@@ -15,7 +15,7 @@ export const SessionProvider = ({ children }: WithChildren) => {
   });
 
   const { data: userData, isError: fetchError } = useService(
-    "session",
+    "user",
     "getUserBySessionKey",
     sessionKey ? { session_key: sessionKey } : undefined,
     { enabled: !!sessionKey },

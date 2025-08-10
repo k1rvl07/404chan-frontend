@@ -9,18 +9,9 @@ export type ServiceMap = {
 };
 
 export type ServiceName = keyof ServiceMap;
+
 export type ServiceMethod<T extends ServiceName> = keyof ServiceMap[T];
+
 export type ServiceMethodParams<S extends ServiceName, M extends ServiceMethod<S>> =
   | Parameters<ServiceMap[S][M]>[0]
   | undefined;
-
-export type ServiceHookResult<S extends ServiceName, M extends ServiceMethod<S>> = {
-  data: Awaited<ReturnType<ServiceMap[S][M]>> | undefined;
-  isLoading: boolean;
-  isError: boolean;
-  refetch: () => void;
-};
-
-export type UseServiceOptions = {
-  enabled?: boolean;
-};

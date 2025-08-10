@@ -1,7 +1,7 @@
 import { HomePage } from "@components";
 
 export const metadata = {
-  title: "404chan - Home",
+  title: "Главная — 404chan",
   description: "Online anonymous chat",
 };
 

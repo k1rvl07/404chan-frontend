@@ -33,8 +33,9 @@ export function useService<S extends ServiceName, M extends ServiceMethod<S>>(
   });
 
   return {
-    data: query.data as Awaited<ReturnType<ServiceMap[S][M]>>,
+    data: query.data as Awaited<ReturnType<ServiceMap[S][M]>> | undefined,
     isLoading: query.isLoading,
     isError: query.isError,
+    refetch: query.refetch,
   };
 }

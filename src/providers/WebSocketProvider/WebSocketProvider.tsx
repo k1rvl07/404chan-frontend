@@ -3,106 +3,107 @@
 import { useSessionStore } from "@/stores/useSessionStore";
 import { env } from "@utils";
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { WebSocketContextType, WebSocketMessage, WebSocketProviderProps } from "./types";
+import type { WebSocketContextType, WebSocketMessage } from "./types";
 
-const WS_URL = env.WS_URL;
-
-const WebSocketContext = createContext<WebSocketContextType>({
+export const WebSocketContext = createContext<WebSocketContextType>({
   socket: null,
   isConnected: false,
   send: () => {},
+  onMessage: () => {},
 });
 
-export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
+export const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const { sessionKey } = useSessionStore();
-  const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
+  const messageHandlers = useRef<Array<(data: WebSocketMessage) => void>>([]);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const connectAttempts = useRef(0);
+  const cleanupSocket = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.onopen = null;
+      socketRef.current.onmessage = null;
+      socketRef.current.onclose = null;
+      socketRef.current.onerror = null;
+
+      if (socketRef.current.readyState !== WebSocket.CLOSED) {
+        socketRef.current.close(1000, "Cleanup");
+      }
+      socketRef.current = null;
+    }
+  }, []);
 
   const connect = useCallback(() => {
-    if (!sessionKey || socket) return;
+    if (!sessionKey) return;
 
-    connectAttempts.current += 1;
-    if (connectAttempts.current > 1) {
+    if (
+      socketRef.current &&
+      (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)
+    ) {
       return;
     }
 
-    const url = `${WS_URL}?session_key=${sessionKey}`;
+    cleanupSocket();
+
+    const url = `${env.WS_URL}?session_key=${sessionKey}`;
     const ws = new WebSocket(url);
 
-    ws.onopen = () => {
-      setIsConnected(true);
-    };
+    ws.onopen = () => setIsConnected(true);
 
     ws.onmessage = (event) => {
       try {
-        const _data: WebSocketMessage = JSON.parse(event.data);
-      } catch (e) {
-        console.error("Invalid message format", e);
+        const data = JSON.parse(event.data);
+        for (const handler of messageHandlers.current) {
+          handler(data);
+        }
+      } catch {
+        console.error("[WebSocket] Invalid message format");
       }
     };
 
     ws.onclose = (event) => {
-      console.log("[WebSocket] Connection closed", event.code);
       setIsConnected(false);
-      setSocket(null);
-      connectAttempts.current = 0;
+      socketRef.current = null;
+      messageHandlers.current = [];
 
-      if (event.code !== 1000 && event.code !== 1001) {
-        reconnectTimeout.current = setTimeout(() => {
-          setSocket((prev) => {
-            if (!prev) connect();
-            return prev;
-          });
-        }, 3000);
-      }
+      if (event.code === 1000 || event.code === 1001) return;
+
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = setTimeout(() => connect(), 3000);
     };
 
     ws.onerror = (error) => {
       console.error("[WebSocket] Error:", error);
     };
 
-    setSocket(ws);
-
-    return () => {
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-      }
-      ws.close();
-    };
-  }, [sessionKey, socket]);
+    socketRef.current = ws;
+  }, [sessionKey, cleanupSocket]);
 
   useEffect(() => {
-    if (sessionKey && !socket) {
-      connect();
+    if (sessionKey) connect();
+
+    return () => {
+      cleanupSocket();
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+    };
+  }, [sessionKey, connect, cleanupSocket]);
+
+  const send = useCallback((message: WebSocketMessage) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(message));
+    } else {
+      console.warn("[WebSocket] Not connected, message not sent:", message);
     }
-  }, [sessionKey, socket, connect]);
+  }, []);
 
-  useEffect(() => {
-    return () => {
-      if (socket) {
-        socket.close(1000, "Component unmounted");
-      }
-      if (reconnectTimeout.current) {
-        clearTimeout(reconnectTimeout.current);
-      }
-    };
-  }, [socket]);
+  const onMessage = useCallback((callback: (data: WebSocketMessage) => void) => {
+    messageHandlers.current.push(callback);
+  }, []);
 
-  const send = useCallback(
-    (message: WebSocketMessage) => {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(message));
-      }
-    },
-    [socket],
+  const value = useMemo(
+    () => ({ socket: socketRef.current, isConnected, send, onMessage }),
+    [isConnected, send, onMessage],
   );
-
-  const value = useMemo(() => ({ socket, isConnected, send }), [socket, isConnected, send]);
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
 };
-
-export { WebSocketContext };

@@ -3,5 +3,6 @@ export type SessionState = {
   userId: number | null;
   nickname: string;
   createdAt: string | null;
+  setNickname: (nickname: string) => void;
   clear: () => void;
 };

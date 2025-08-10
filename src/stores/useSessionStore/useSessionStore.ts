@@ -4,7 +4,7 @@ import type { SessionState } from "./types";
 
 export const useSessionStore = create<SessionState>()(
   persist<SessionState>(
-    () => ({
+    (set) => ({
       sessionKey: null,
       userId: null,
       nickname: "Аноним",
@@ -16,6 +16,7 @@ export const useSessionStore = create<SessionState>()(
           createdAt: null,
         });
       },
+      setNickname: (nickname: string) => set({ nickname }),
     }),
     {
       name: "404chan-session",
