@@ -1,15 +1,15 @@
 "use client";
-
 import { AppContainer } from "@components";
 import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
-import { useEffect, useState } from "react";
-import type { User, WebSocketEvent } from "./types";
+import { useEffect, useRef, useState } from "react";
+import type { AxiosError, User, WebSocketEvent } from "./types";
 
 export const UserPage = () => {
-  const { sessionKey } = useSessionStore();
+  const { sessionKey, userId, nickname, setNickname } = useSessionStore();
+
   const { data: userData } = useService<"user", "getUserBySessionKey">(
     "user",
     "getUserBySessionKey",
@@ -17,14 +17,16 @@ export const UserPage = () => {
     { enabled: !!sessionKey },
   );
 
-  const { userId, nickname, setNickname } = useSessionStore();
   const messagesCount = userData?.MessagesCount ?? 0;
   const threadsCount = userData?.ThreadsCount ?? 0;
-
   const [sessionDuration, setSessionDuration] = useState("00:00:00");
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState(nickname);
   const [error, setError] = useState<string | null>(null);
+  const [isCooldown, setIsCooldown] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+
+  const timerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setNewNickname(nickname);
@@ -44,17 +46,21 @@ export const UserPage = () => {
     onError: (err) => {
       let msg = "Не удалось изменить ник";
 
+      // Проверяем, что err — это объект
       if (err && typeof err === "object") {
-        if ("response" in err) {
-          const response = (err as { response?: { data?: { error?: string } } }).response;
-          if (response?.data?.error) {
-            msg = response.data.error;
+        const axiosError = err as AxiosError;
+
+        if (axiosError.response) {
+          const status = axiosError.response.status;
+          const errorData = axiosError.response.data?.error;
+
+          if (status === 429) {
+            msg = "Менять ник можно не чаще раза в минуту";
+          } else if (typeof errorData === "string") {
+            msg = errorData;
           }
-        } else if ("message" in err) {
-          const message = (err as { message?: string }).message;
-          if (typeof message === "string") {
-            msg = message;
-          }
+        } else if (axiosError.message) {
+          msg = axiosError.message;
         }
       }
 
@@ -62,28 +68,78 @@ export const UserPage = () => {
     },
   });
 
+  useWebSocketEvent("nickname_updated", (rawData) => {
+    const data = rawData as WebSocketEvent;
+
+    if (data.event === "nickname_updated" && "timestamp" in data) {
+      if (data.user_id === userId && data.nickname !== nickname) {
+        setNickname(data.nickname);
+      }
+
+      const serverTimestamp = data.timestamp as number;
+      const now = Math.floor(Date.now() / 1000);
+      const cooldownEnd = serverTimestamp + 60;
+      const left = cooldownEnd - now;
+
+      if (left > 0) {
+        if (timerRef.current !== null) {
+          clearInterval(timerRef.current);
+        }
+
+        setIsCooldown(true);
+        setTimeLeft(left);
+
+        const timer = window.setInterval(() => {
+          setTimeLeft((t) => {
+            if (t <= 1) {
+              clearInterval(timer);
+              timerRef.current = null;
+              setIsCooldown(false);
+              return 0;
+            }
+            return t - 1;
+          });
+        }, 1000);
+
+        timerRef.current = timer;
+      } else {
+        if (timerRef.current !== null) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        setIsCooldown(false);
+        setTimeLeft(0);
+      }
+    }
+  });
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+
   const handleNicknameChange = () => {
     const trimmed = newNickname.trim();
-
     if (!trimmed) {
       setError("Ник не может быть пустым");
       return;
     }
-
     if (trimmed.length > 16) {
       setError("Ник не может быть длиннее 16 символов");
       return;
     }
-
-    setIsEditing(false);
-
+    if (isCooldown) {
+      setError("Менять ник можно не чаще раза в минуту");
+      return;
+    }
     if (trimmed !== nickname && sessionKey) {
       updateNickname({
         session_key: sessionKey,
         nickname: trimmed,
       });
-    } else {
-      setError(null);
     }
   };
 
@@ -92,14 +148,12 @@ export const UserPage = () => {
       setSessionDuration("00:00:00");
       return;
     }
-
     const updateDuration = () => {
       try {
         const start = new Date(userData.SessionStartedAt).getTime();
         const now = Date.now();
         const elapsed = now - start;
         const totalSeconds = Math.floor(elapsed / 1000);
-
         const hours = Math.floor(totalSeconds / 3600)
           .toString()
           .padStart(2, "0");
@@ -107,16 +161,13 @@ export const UserPage = () => {
           .toString()
           .padStart(2, "0");
         const seconds = (totalSeconds % 60).toString().padStart(2, "0");
-
         setSessionDuration(`${hours}:${minutes}:${seconds}`);
       } catch {
         setSessionDuration("00:00:00");
       }
     };
-
     updateDuration();
     const interval = setInterval(updateDuration, 1000);
-
     return () => clearInterval(interval);
   }, [userData?.SessionStartedAt]);
 
@@ -129,24 +180,15 @@ export const UserPage = () => {
     }
   };
 
-  useWebSocketEvent("nickname_updated", (rawData) => {
-    const data = rawData as WebSocketEvent;
-    if (data.event === "nickname_updated" && data.user_id === userId && data.nickname !== nickname) {
-      setNickname(data.nickname);
-    }
-  });
-
   return (
     <main className="min-h-screen bg-tw-light-background-default dark:bg-tw-dark-background-default">
       <AppContainer className="py-6">
         <section className="space-y-6">
           <h2 className="text-2xl font-bold mb-6 text-tw-mono-black dark:text-tw-mono-white">Профиль пользователя</h2>
-
           <div className="space-y-4 text-tw-light-text-primary dark:text-tw-dark-text-primary">
             <div>
               <strong className="font-medium">ID:</strong> {userId}
             </div>
-
             <div>
               <strong className="font-medium">Ник:</strong>{" "}
               {isEditing ? (
@@ -161,11 +203,13 @@ export const UserPage = () => {
                         setError(null);
                       }
                     }}
+                    disabled={isCooldown}
                     className="
                       px-2 py-1 text-sm border border-tw-light-divider dark:border-tw-dark-divider
                       rounded bg-tw-light-surface dark:bg-tw-dark-surface
                       focus:outline-none focus:ring-1 focus:ring-tw-mono-black dark:focus:ring-tw-mono-white
                       w-[140px] lg:w-[260px] font-mono
+                      disabled:bg-gray-100 disabled:cursor-not-allowed
                     "
                     maxLength={16}
                     placeholder="Ник (1-16)"
@@ -177,14 +221,14 @@ export const UserPage = () => {
                     <button
                       type="button"
                       onClick={handleNicknameChange}
-                      disabled={newNickname.trim().length === 0 || newNickname.trim().length > 16}
+                      disabled={isCooldown || newNickname.trim().length === 0 || newNickname.trim().length > 16}
                       className="
                         px-2 py-1 text-xs bg-tw-mono-black dark:bg-tw-mono-white
                         text-white dark:text-black rounded hover:opacity-90
                         disabled:opacity-50 disabled:cursor-not-allowed
                       "
                     >
-                      Сохранить
+                      {isCooldown ? `${timeLeft} с` : "Сохранить"}
                     </button>
                     <button
                       type="button"
@@ -212,34 +256,32 @@ export const UserPage = () => {
                 </span>
               )}
             </div>
-
+            {isCooldown && (
+              <p className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
+                Можно будет изменить через {timeLeft} сек.
+              </p>
+            )}
             {error && <p className="text-tw-light-error dark:text-tw-dark-error text-sm">{error}</p>}
-
             <div>
               <strong className="font-medium">Дата создания аккаунта:</strong> {formatAccountCreatedAt()}
             </div>
-
             <div>
               <strong className="font-medium">Текущая сессия:</strong>{" "}
               <code className="font-mono text-sm text-tw-mono-900 dark:text-tw-mono-100">
                 {sessionKey ? `${sessionKey.slice(0, 8)}...` : "Нет активной сессии"}
               </code>
             </div>
-
             <div>
               <strong className="font-medium">Продолжительность сессии:</strong>{" "}
               <span className="font-mono text-lg text-tw-mono-black dark:text-tw-mono-white">{sessionDuration}</span>
             </div>
-
             <div>
               <strong className="font-medium">Сообщений:</strong> {messagesCount}
             </div>
-
             <div>
               <strong className="font-medium">Тредов:</strong> {threadsCount}
             </div>
           </div>
-
           <div className="mt-8 p-4 bg-tw-light-surface dark:bg-tw-dark-surface border border-tw-light-divider dark:border-tw-dark-divider rounded-lg text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
             <p className="leading-relaxed">
               <strong className="font-medium text-tw-mono-black dark:text-tw-mono-white">

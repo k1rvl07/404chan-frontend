@@ -21,3 +21,16 @@ export type WebSocketEvent =
       message_count: number;
       thread_count: number;
     };
+
+export type AxiosResponseErrorData = {
+  error?: string;
+};
+
+export type AxiosResponse = {
+  status: number;
+  data: AxiosResponseErrorData;
+};
+export type AxiosError = {
+  response?: AxiosResponse;
+  message?: string;
+};

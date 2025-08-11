@@ -9,14 +9,15 @@ export const useSessionStore = create<SessionState>()(
       userId: null,
       nickname: "Аноним",
       createdAt: null,
+      setNickname: (nickname: string) => set({ nickname }),
       clear: () => {
         useSessionStore.setState({
           sessionKey: null,
           userId: null,
+          nickname: "Аноним",
           createdAt: null,
         });
       },
-      setNickname: (nickname: string) => set({ nickname }),
     }),
     {
       name: "404chan-session",
