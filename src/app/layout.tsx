@@ -1,4 +1,4 @@
-import { Header } from "@components";
+import { Footer, Header } from "@components";
 import { Providers } from "@providers";
 import type { WithChildren } from "@types";
 import classnames from "classnames";
@@ -32,6 +32,7 @@ export default function Layout({ children }: WithChildren) {
         <Providers>
           <Header />
           {children}
+          <Footer />
         </Providers>
       </body>
     </html>

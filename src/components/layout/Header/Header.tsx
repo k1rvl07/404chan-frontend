@@ -12,11 +12,10 @@ export const Header = () => {
   return (
     <header
       className="border-b border-tw-light-divider dark:border-tw-dark-divider
-                 bg-tw-light-background-default dark:bg-tw-dark-background-default
-                 text-tw-light-text-primary dark:text-tw-dark-text-primary"
+                 bg-tw-light-background-default dark:bg-tw-dark-background-default"
     >
-      <AppContainer>
-        <div className="flex items-center justify-between py-1.5">
+      <AppContainer className="py-1.5">
+        <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-tw-mono-black dark:text-tw-mono-white">
             <Link href="/" className="no-underline text-inherit hover:opacity-80 transition-opacity">
               404chan

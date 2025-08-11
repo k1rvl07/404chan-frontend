@@ -194,18 +194,18 @@ export const UserPage = () => {
   };
 
   return (
-    <main className="min-h-screen bg-tw-light-background-default dark:bg-tw-dark-background-default">
+    <main className="min-h-screen">
       <AppContainer className="py-6">
         <section className="space-y-6">
           <h2 className="text-2xl font-bold mb-6 text-tw-mono-black dark:text-tw-mono-white">Профиль пользователя</h2>
-          <div className="space-y-4 text-tw-light-text-primary dark:text-tw-dark-text-primary">
-            <div>
+          <ul className="space-y-4 text-tw-light-text-primary dark:text-tw-dark-text-primary">
+            <li>
               <strong className="font-medium">ID:</strong> {userId}
-            </div>
-            <div>
+            </li>
+            <li>
               <strong className="font-medium">Ник:</strong>{" "}
               {isEditing ? (
-                <span className="inline-flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1 sm:mt-0">
+                <span className="inline-flex flex-row  items-center gap-2">
                   <input
                     type="text"
                     value={newNickname}
@@ -222,10 +222,10 @@ export const UserPage = () => {
                     maxLength={16}
                     placeholder="Только буквы и цифры"
                   />
-                  <span className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary mt-1 sm:mt-0">
+                  <span className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
                     {newNickname.length}/16
                   </span>
-                  <div className="flex gap-1 mt-1 sm:mt-0">
+                  <div className="flex gap-1">
                     <button
                       type="button"
                       onClick={handleNicknameChange}
@@ -236,7 +236,7 @@ export const UserPage = () => {
                         disabled:opacity-50 disabled:cursor-not-allowed
                       "
                     >
-                      {isCooldown ? `${timeLeft} с` : "Сохранить"}
+                      Сохранить
                     </button>
                     <button
                       type="button"
@@ -263,36 +263,36 @@ export const UserPage = () => {
                   </button>
                 </span>
               )}
-            </div>
-            <p className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
-              Ник может содержать только буквы и цифры
-            </p>
+            </li>
             {isCooldown && (
               <p className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
                 Можно будет изменить через {timeLeft} сек.
               </p>
             )}
+            <p className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
+              Ник может содержать только буквы и цифры
+            </p>
             {error && <p className="text-tw-light-error dark:text-tw-dark-error text-sm">{error}</p>}
-            <div>
+            <li>
               <strong className="font-medium">Дата создания аккаунта:</strong> {formatAccountCreatedAt()}
-            </div>
-            <div>
+            </li>
+            <li>
               <strong className="font-medium">Текущая сессия:</strong>{" "}
               <code className="font-mono text-sm text-tw-mono-900 dark:text-tw-mono-100">
                 {sessionKey ? `${sessionKey.slice(0, 8)}...` : "Нет активной сессии"}
               </code>
-            </div>
-            <div>
+            </li>
+            <li>
               <strong className="font-medium">Продолжительность сессии:</strong>{" "}
               <span className="font-mono text-lg text-tw-mono-black dark:text-tw-mono-white">{sessionDuration}</span>
-            </div>
-            <div>
-              <strong className="font-medium">Сообщений:</strong> {messagesCount}
-            </div>
-            <div>
+            </li>
+            <li>
               <strong className="font-medium">Тредов:</strong> {threadsCount}
-            </div>
-          </div>
+            </li>
+            <li>
+              <strong className="font-medium">Сообщений:</strong> {messagesCount}
+            </li>
+          </ul>
           <div className="mt-8 p-4 bg-tw-light-surface dark:bg-tw-dark-surface border border-tw-light-divider dark:border-tw-dark-divider rounded-lg text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
             <p className="leading-relaxed">
               <strong className="font-medium text-tw-mono-black dark:text-tw-mono-white">
