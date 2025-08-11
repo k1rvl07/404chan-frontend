@@ -9,13 +9,23 @@ export const useSessionStore = create<SessionState>()(
       userId: null,
       nickname: "Аноним",
       createdAt: null,
+      nicknameChangeCooldownUntil: null,
+      lastNicknameUpdateServerTime: null,
+
       setNickname: (nickname: string) => set({ nickname }),
+
+      setNicknameChangeCooldownUntil: (timestamp: number | null) => set({ nicknameChangeCooldownUntil: timestamp }),
+
+      setLastNicknameUpdateServerTime: (timestamp: number | null) => set({ lastNicknameUpdateServerTime: timestamp }),
+
       clear: () => {
         useSessionStore.setState({
           sessionKey: null,
           userId: null,
           nickname: "Аноним",
           createdAt: null,
+          nicknameChangeCooldownUntil: null,
+          lastNicknameUpdateServerTime: null,
         });
       },
     }),

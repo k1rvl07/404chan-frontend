@@ -1,5 +1,4 @@
 "use client";
-
 import { useSessionStore } from "@/stores/useSessionStore";
 import { env } from "@utils";
 import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -55,6 +54,12 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
         const data = JSON.parse(event.data);
         for (const handler of messageHandlers.current) {
           handler(data);
+        }
+
+        if (data.event === "nickname_updated" && typeof data.timestamp === "number") {
+          const cooldownEndMs = data.timestamp * 1000 + 60000;
+          useSessionStore.getState().setLastNicknameUpdateServerTime(data.timestamp);
+          useSessionStore.getState().setNicknameChangeCooldownUntil(cooldownEndMs);
         }
       } catch {
         console.error("[WebSocket] Invalid message format");

@@ -4,11 +4,19 @@ import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AxiosError, User, WebSocketEvent } from "./types";
 
 export const UserPage = () => {
-  const { sessionKey, userId, nickname, setNickname } = useSessionStore();
+  const {
+    sessionKey,
+    userId,
+    nickname,
+    setNickname,
+    nicknameChangeCooldownUntil,
+    setNicknameChangeCooldownUntil,
+    setLastNicknameUpdateServerTime,
+  } = useSessionStore();
 
   const { data: userData } = useService<"user", "getUserBySessionKey">(
     "user",
@@ -26,8 +34,6 @@ export const UserPage = () => {
   const [isCooldown, setIsCooldown] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
 
-  const timerRef = useRef<number | null>(null);
-
   useEffect(() => {
     setNewNickname(nickname);
   }, [nickname]);
@@ -39,14 +45,16 @@ export const UserPage = () => {
     User
   >("user", "updateNickname", {
     onSuccess: (data) => {
+      const now = Math.floor(Date.now() / 1000);
       setNickname(data.Nickname);
+      setNicknameChangeCooldownUntil(Date.now() + 60000);
+      setLastNicknameUpdateServerTime(now);
       setIsEditing(false);
       setError(null);
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       let msg = "Не удалось изменить ник";
 
-      // Проверяем, что err — это объект
       if (err && typeof err === "object") {
         const axiosError = err as AxiosError;
 
@@ -55,11 +63,14 @@ export const UserPage = () => {
           const errorData = axiosError.response.data?.error;
 
           if (status === 429) {
-            msg = "Менять ник можно не чаще раза в минуту";
+            const left = nicknameChangeCooldownUntil
+              ? Math.ceil((nicknameChangeCooldownUntil - Date.now()) / 1000)
+              : 60;
+            msg = `Менять ник можно не чаще раза в минуту. Осталось: ${left} с.`;
           } else if (typeof errorData === "string") {
             msg = errorData;
           }
-        } else if (axiosError.message) {
+        } else if ("message" in axiosError && typeof axiosError.message === "string") {
           msg = axiosError.message;
         }
       }
@@ -70,56 +81,42 @@ export const UserPage = () => {
 
   useWebSocketEvent("nickname_updated", (rawData) => {
     const data = rawData as WebSocketEvent;
+    if (data.event === "nickname_updated" && data.user_id === userId && data.nickname !== nickname) {
+      setNickname(data.nickname);
+    }
 
     if (data.event === "nickname_updated" && "timestamp" in data) {
-      if (data.user_id === userId && data.nickname !== nickname) {
-        setNickname(data.nickname);
-      }
-
       const serverTimestamp = data.timestamp as number;
-      const now = Math.floor(Date.now() / 1000);
-      const cooldownEnd = serverTimestamp + 60;
-      const left = cooldownEnd - now;
-
-      if (left > 0) {
-        if (timerRef.current !== null) {
-          clearInterval(timerRef.current);
-        }
-
-        setIsCooldown(true);
-        setTimeLeft(left);
-
-        const timer = window.setInterval(() => {
-          setTimeLeft((t) => {
-            if (t <= 1) {
-              clearInterval(timer);
-              timerRef.current = null;
-              setIsCooldown(false);
-              return 0;
-            }
-            return t - 1;
-          });
-        }, 1000);
-
-        timerRef.current = timer;
-      } else {
-        if (timerRef.current !== null) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        setIsCooldown(false);
-        setTimeLeft(0);
-      }
+      const cooldownEndMs = serverTimestamp * 1000 + 60000;
+      setNicknameChangeCooldownUntil(cooldownEndMs);
+      setLastNicknameUpdateServerTime(serverTimestamp);
     }
   });
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current !== null) {
-        clearInterval(timerRef.current);
+    if (!nicknameChangeCooldownUntil) {
+      setIsCooldown(false);
+      setTimeLeft(0);
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const left = Math.ceil((nicknameChangeCooldownUntil - now) / 1000);
+      if (left > 0) {
+        setIsCooldown(true);
+        setTimeLeft(left);
+      } else {
+        setIsCooldown(false);
+        setTimeLeft(0);
+        setNicknameChangeCooldownUntil(null);
       }
     };
-  }, []);
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [nicknameChangeCooldownUntil, setNicknameChangeCooldownUntil]);
 
   const handleNicknameChange = () => {
     const trimmed = newNickname.trim();
@@ -132,7 +129,7 @@ export const UserPage = () => {
       return;
     }
     if (isCooldown) {
-      setError("Менять ник можно не чаще раза в минуту");
+      setError(`Менять ник можно не чаще раза в минуту. Осталось: ${timeLeft} с.`);
       return;
     }
     if (trimmed !== nickname && sessionKey) {
@@ -140,6 +137,22 @@ export const UserPage = () => {
         session_key: sessionKey,
         nickname: trimmed,
       });
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const sanitized = value.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, "");
+    if (sanitized.length <= 16) {
+      setNewNickname(sanitized);
+      setError(null);
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleNicknameChange();
     }
   };
 
@@ -196,23 +209,18 @@ export const UserPage = () => {
                   <input
                     type="text"
                     value={newNickname}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value.length <= 16) {
-                        setNewNickname(value);
-                        setError(null);
-                      }
-                    }}
+                    onChange={handleInputChange}
+                    onKeyDown={handleInputKeyDown}
                     disabled={isCooldown}
                     className="
                       px-2 py-1 text-sm border border-tw-light-divider dark:border-tw-dark-divider
                       rounded bg-tw-light-surface dark:bg-tw-dark-surface
                       focus:outline-none focus:ring-1 focus:ring-tw-mono-black dark:focus:ring-tw-mono-white
                       w-[140px] lg:w-[260px] font-mono
-                      disabled:bg-gray-100 disabled:cursor-not-allowed
+                      disabled:bg-tw-mono-200 disabled:cursor-not-allowed
                     "
                     maxLength={16}
-                    placeholder="Ник (1-16)"
+                    placeholder="Только буквы и цифры"
                   />
                   <span className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary mt-1 sm:mt-0">
                     {newNickname.length}/16
@@ -224,7 +232,7 @@ export const UserPage = () => {
                       disabled={isCooldown || newNickname.trim().length === 0 || newNickname.trim().length > 16}
                       className="
                         px-2 py-1 text-xs bg-tw-mono-black dark:bg-tw-mono-white
-                        text-white dark:text-black rounded hover:opacity-90
+                        text-tw-mono-white dark:text-tw-mono-black rounded hover:opacity-90
                         disabled:opacity-50 disabled:cursor-not-allowed
                       "
                     >
@@ -256,6 +264,9 @@ export const UserPage = () => {
                 </span>
               )}
             </div>
+            <p className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
+              Ник может содержать только буквы и цифры
+            </p>
             {isCooldown && (
               <p className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
                 Можно будет изменить через {timeLeft} сек.

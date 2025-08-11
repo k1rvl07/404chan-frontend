@@ -22,15 +22,12 @@ export type WebSocketEvent =
       thread_count: number;
     };
 
-export type AxiosResponseErrorData = {
-  error?: string;
-};
-
-export type AxiosResponse = {
-  status: number;
-  data: AxiosResponseErrorData;
-};
 export type AxiosError = {
-  response?: AxiosResponse;
+  response?: {
+    status: number;
+    data?: {
+      error?: string;
+    };
+  };
   message?: string;
 };
