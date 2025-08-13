@@ -1,11 +1,10 @@
 "use client";
 
-import { AppContainer, Loading } from "@components";
+import { AppContainer, ErrorScreen, Loading } from "@components";
 import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
-import { getErrorStatus } from "@utils";
 import { useEffect, useState } from "react";
 import type { AxiosError, User } from "./types";
 
@@ -24,7 +23,6 @@ export const UserPage = () => {
     data: userData,
     isLoading,
     isError: isProfileError,
-    error: profileError,
   } = useService<"user", "getUserBySessionKey">(
     "user",
     "getUserBySessionKey",
@@ -64,7 +62,7 @@ export const UserPage = () => {
 
       if (err && typeof err === "object") {
         const axiosError = err as AxiosError;
-        const status = getErrorStatus(err);
+        const status = axiosError.response?.status;
 
         if (status === 429) {
           const left = nicknameChangeCooldownUntil ? Math.ceil((nicknameChangeCooldownUntil - Date.now()) / 1000) : 60;
@@ -196,12 +194,12 @@ export const UserPage = () => {
     }
   };
 
-  if (isProfileError) {
-    throw profileError;
-  }
-
   if (isLoading) {
     return <Loading />;
+  }
+
+  if (isProfileError) {
+    return <ErrorScreen />;
   }
 
   return (

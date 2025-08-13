@@ -1,23 +1,18 @@
 "use client";
 
-import { AppContainer, Loading } from "@components";
+import { AppContainer, ErrorScreen, Loading } from "@components";
 import { useService } from "@hooks";
 import Link from "next/link";
 
 export const HomePage = () => {
-  const {
-    data: boards,
-    isLoading,
-    isError,
-    error,
-  } = useService<"board", "getBoards">("board", "getBoards", undefined, {});
-
-  if (isError) {
-    throw error;
-  }
+  const { data: boards, isLoading, isError } = useService<"board", "getBoards">("board", "getBoards", undefined, {});
 
   if (isLoading) {
     return <Loading />;
+  }
+
+  if (isError) {
+    return <ErrorScreen />;
   }
 
   return (

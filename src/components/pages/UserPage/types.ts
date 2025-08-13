@@ -31,3 +31,5 @@ export type AxiosError = {
   };
   message?: string;
 };
+
+export type ExtendedError = Error & { onRetry?: () => void };

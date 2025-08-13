@@ -1,11 +1,10 @@
 "use client";
 
-import { AppContainer, Loading } from "@components";
+import { AppContainer, ErrorScreen, Loading } from "@components";
 import { useService } from "@hooks";
+import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
 import { useParams } from "next/navigation";
-
-import { getErrorStatus } from "@utils";
 
 export const BoardPage = () => {
   const params = useParams();
@@ -32,7 +31,7 @@ export const BoardPage = () => {
   }
 
   if (isError) {
-    throw error;
+    return <ErrorScreen />;
   }
 
   if (!board) {
