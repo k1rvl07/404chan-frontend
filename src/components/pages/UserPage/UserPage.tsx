@@ -1,11 +1,13 @@
 "use client";
-import { AppContainer } from "@components";
+
+import { AppContainer, Loading } from "@components";
 import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
+import { getErrorStatus } from "@utils";
 import { useEffect, useState } from "react";
-import type { AxiosError, User, WebSocketEvent } from "./types";
+import type { AxiosError, User } from "./types";
 
 export const UserPage = () => {
   const {
@@ -18,7 +20,12 @@ export const UserPage = () => {
     setLastNicknameUpdateServerTime,
   } = useSessionStore();
 
-  const { data: userData } = useService<"user", "getUserBySessionKey">(
+  const {
+    data: userData,
+    isLoading,
+    isError: isProfileError,
+    error: profileError,
+  } = useService<"user", "getUserBySessionKey">(
     "user",
     "getUserBySessionKey",
     sessionKey ? { session_key: sessionKey } : undefined,
@@ -30,7 +37,7 @@ export const UserPage = () => {
   const [sessionDuration, setSessionDuration] = useState("00:00:00");
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState(nickname);
-  const [error, setError] = useState<string | null>(null);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCooldown, setIsCooldown] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
 
@@ -50,43 +57,37 @@ export const UserPage = () => {
       setNicknameChangeCooldownUntil(Date.now() + 60000);
       setLastNicknameUpdateServerTime(now);
       setIsEditing(false);
-      setError(null);
+      setNicknameError(null);
     },
     onError: (err: unknown) => {
       let msg = "Не удалось изменить ник";
 
       if (err && typeof err === "object") {
         const axiosError = err as AxiosError;
+        const status = getErrorStatus(err);
 
-        if (axiosError.response) {
-          const status = axiosError.response.status;
-          const errorData = axiosError.response.data?.error;
-
-          if (status === 429) {
-            const left = nicknameChangeCooldownUntil
-              ? Math.ceil((nicknameChangeCooldownUntil - Date.now()) / 1000)
-              : 60;
-            msg = `Менять ник можно не чаще раза в минуту. Осталось: ${left} с.`;
-          } else if (typeof errorData === "string") {
-            msg = errorData;
-          }
-        } else if ("message" in axiosError && typeof axiosError.message === "string") {
+        if (status === 429) {
+          const left = nicknameChangeCooldownUntil ? Math.ceil((nicknameChangeCooldownUntil - Date.now()) / 1000) : 60;
+          msg = `Менять ник можно не чаще раза в минуту. Осталось: ${left} с.`;
+        } else if (axiosError.response?.data?.error) {
+          msg = axiosError.response.data.error;
+        } else if (axiosError.message) {
           msg = axiosError.message;
         }
       }
 
-      setError(msg);
+      setNicknameError(msg);
     },
   });
 
   useWebSocketEvent("nickname_updated", (rawData) => {
-    const data = rawData as WebSocketEvent;
+    const data = rawData as { event: string; user_id: number; nickname: string; timestamp?: number };
     if (data.event === "nickname_updated" && data.user_id === userId && data.nickname !== nickname) {
       setNickname(data.nickname);
     }
 
-    if (data.event === "nickname_updated" && "timestamp" in data) {
-      const serverTimestamp = data.timestamp as number;
+    if (data.event === "nickname_updated" && data.timestamp) {
+      const serverTimestamp = data.timestamp;
       const cooldownEndMs = serverTimestamp * 1000 + 60000;
       setNicknameChangeCooldownUntil(cooldownEndMs);
       setLastNicknameUpdateServerTime(serverTimestamp);
@@ -121,15 +122,15 @@ export const UserPage = () => {
   const handleNicknameChange = () => {
     const trimmed = newNickname.trim();
     if (!trimmed) {
-      setError("Ник не может быть пустым");
+      setNicknameError("Ник не может быть пустым");
       return;
     }
     if (trimmed.length > 16) {
-      setError("Ник не может быть длиннее 16 символов");
+      setNicknameError("Ник не может быть длиннее 16 символов");
       return;
     }
     if (isCooldown) {
-      setError(`Менять ник можно не чаще раза в минуту. Осталось: ${timeLeft} с.`);
+      setNicknameError(`Менять ник можно не чаще раза в минуту. Осталось: ${timeLeft} с.`);
       return;
     }
     if (trimmed !== nickname && sessionKey) {
@@ -145,7 +146,7 @@ export const UserPage = () => {
     const sanitized = value.replace(/[^a-zA-Z0-9а-яА-ЯёЁ]/g, "");
     if (sanitized.length <= 16) {
       setNewNickname(sanitized);
-      setError(null);
+      setNicknameError(null);
     }
   };
 
@@ -161,6 +162,7 @@ export const UserPage = () => {
       setSessionDuration("00:00:00");
       return;
     }
+
     const updateDuration = () => {
       try {
         const start = new Date(userData.SessionStartedAt).getTime();
@@ -179,6 +181,7 @@ export const UserPage = () => {
         setSessionDuration("00:00:00");
       }
     };
+
     updateDuration();
     const interval = setInterval(updateDuration, 1000);
     return () => clearInterval(interval);
@@ -193,6 +196,14 @@ export const UserPage = () => {
     }
   };
 
+  if (isProfileError) {
+    throw profileError;
+  }
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
     <main className="min-h-screen">
       <AppContainer className="py-6">
@@ -205,7 +216,7 @@ export const UserPage = () => {
             <li>
               <strong className="font-medium">Ник:</strong>{" "}
               {isEditing ? (
-                <span className="inline-flex flex-row  items-center gap-2">
+                <span className="inline-flex flex-row items-center gap-2">
                   <input
                     type="text"
                     value={newNickname}
@@ -243,7 +254,7 @@ export const UserPage = () => {
                       onClick={() => {
                         setNewNickname(nickname);
                         setIsEditing(false);
-                        setError(null);
+                        setNicknameError(null);
                       }}
                       className="px-2 py-1 text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
                     >
@@ -272,7 +283,7 @@ export const UserPage = () => {
             <p className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
               Ник может содержать только буквы и цифры
             </p>
-            {error && <p className="text-tw-light-error dark:text-tw-dark-error text-sm">{error}</p>}
+            {nicknameError && <p className="text-tw-light-error dark:text-tw-dark-error text-sm">{nicknameError}</p>}
             <li>
               <strong className="font-medium">Дата создания аккаунта:</strong> {formatAccountCreatedAt()}
             </li>

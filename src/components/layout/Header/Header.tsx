@@ -28,7 +28,7 @@ export const Header = () => {
                 className="
                   py-1.5 px-2.5 rounded-lg
                   text-tw-light-text-primary dark:text-tw-dark-text-primary
-                  hover:bg-tw-light-surface dark:hover:bg-tw-dark-surface
+                  hover:bg-tw-mono-200 dark:hover:bg-tw-dark-surface
                   transition-colors
                 "
               >
@@ -41,7 +41,7 @@ export const Header = () => {
                 className="
                   py-1.5 px-2.5 rounded-lg
                   text-tw-light-text-primary dark:text-tw-dark-text-primary
-                  hover:bg-tw-light-surface dark:hover:bg-tw-dark-surface
+                  hover:bg-tw-mono-200 dark:hover:bg-tw-dark-surface
                   transition-colors
                 "
               >
@@ -55,7 +55,7 @@ export const Header = () => {
               className="
                 py-1.5 px-2.5 rounded-lg
                 text-tw-light-text-primary dark:text-tw-dark-text-primary
-                hover:bg-tw-light-surface dark:hover:bg-tw-dark-surface
+                hover:bg-tw-mono-200 dark:hover:bg-tw-dark-surface
               "
             >
               {mode === "dark" ? <SunOutlined /> : <MoonOutlined />}

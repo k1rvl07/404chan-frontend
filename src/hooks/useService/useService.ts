@@ -37,5 +37,6 @@ export function useService<S extends ServiceName, M extends ServiceMethod<S>>(
     isLoading: query.isLoading,
     isError: query.isError,
     refetch: query.refetch,
+    error: query.error,
   };
 }

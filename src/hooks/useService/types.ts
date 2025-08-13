@@ -19,6 +19,7 @@ export type ServiceHookResult<S extends ServiceName, M extends ServiceMethod<S>>
   isLoading: boolean;
   isError: boolean;
   refetch: () => void;
+  error: unknown;
 };
 
 export type UseServiceOptions = {
