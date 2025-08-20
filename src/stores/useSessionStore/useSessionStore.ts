@@ -11,12 +11,18 @@ export const useSessionStore = create<SessionState>()(
       createdAt: null,
       nicknameChangeCooldownUntil: null,
       lastNicknameUpdateServerTime: null,
+      threadCreationCooldownUntil: null,
+      lastThreadCreationServerTime: null,
 
       setNickname: (nickname: string) => set({ nickname }),
 
       setNicknameChangeCooldownUntil: (timestamp: number | null) => set({ nicknameChangeCooldownUntil: timestamp }),
 
       setLastNicknameUpdateServerTime: (timestamp: number | null) => set({ lastNicknameUpdateServerTime: timestamp }),
+
+      setThreadCreationCooldownUntil: (timestamp: number | null) => set({ threadCreationCooldownUntil: timestamp }),
+
+      setLastThreadCreationServerTime: (timestamp: number | null) => set({ lastThreadCreationServerTime: timestamp }),
 
       clear: () => {
         useSessionStore.setState({
@@ -26,6 +32,8 @@ export const useSessionStore = create<SessionState>()(
           createdAt: null,
           nicknameChangeCooldownUntil: null,
           lastNicknameUpdateServerTime: null,
+          threadCreationCooldownUntil: null,
+          lastThreadCreationServerTime: null,
         });
       },
     }),

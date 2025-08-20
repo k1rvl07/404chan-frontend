@@ -61,6 +61,12 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
           useSessionStore.getState().setLastNicknameUpdateServerTime(data.timestamp);
           useSessionStore.getState().setNicknameChangeCooldownUntil(cooldownEndMs);
         }
+
+        if (data.event === "thread_created" && data.data && typeof data.data.timestamp === "number") {
+          const cooldownEndMs = data.data.timestamp * 1000 + 300000;
+          useSessionStore.getState().setLastThreadCreationServerTime(data.data.timestamp);
+          useSessionStore.getState().setThreadCreationCooldownUntil(cooldownEndMs);
+        }
       } catch {
         console.error("[WebSocket] Invalid message format");
       }

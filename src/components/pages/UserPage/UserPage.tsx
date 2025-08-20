@@ -1,6 +1,7 @@
 "use client";
 
 import { AppContainer, ErrorScreen, Loading } from "@components";
+import { Button, Input } from "@components";
 import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
@@ -215,61 +216,54 @@ export const UserPage = () => {
               <strong className="font-medium">Ник:</strong>{" "}
               {isEditing ? (
                 <span className="inline-flex flex-row items-center gap-2">
-                  <input
+                  <Input
                     type="text"
                     value={newNickname}
                     onChange={handleInputChange}
                     onKeyDown={handleInputKeyDown}
                     disabled={isCooldown}
-                    className="
-                      px-2 py-1 text-sm border border-tw-light-divider dark:border-tw-dark-divider
-                      rounded bg-tw-light-surface dark:bg-tw-dark-surface
-                      focus:outline-none focus:ring-1 focus:ring-tw-mono-black dark:focus:ring-tw-mono-white
-                      w-[140px] lg:w-[260px] font-mono
-                      disabled:bg-tw-mono-200 disabled:cursor-not-allowed
-                    "
+                    placeholder="Ник (1-16)"
                     maxLength={16}
-                    placeholder="Только буквы и цифры"
+                    className="w-[140px] lg:w-[260px]"
                   />
                   <span className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
                     {newNickname.length}/16
                   </span>
                   <div className="flex gap-1">
-                    <button
+                    <Button
                       type="button"
                       onClick={handleNicknameChange}
                       disabled={isCooldown || newNickname.trim().length === 0 || newNickname.trim().length > 16}
-                      className="
-                        px-2 py-1 text-xs bg-tw-mono-black dark:bg-tw-mono-white
-                        text-tw-mono-white dark:text-tw-mono-black rounded hover:opacity-90
-                        disabled:opacity-50 disabled:cursor-not-allowed
-                      "
+                      size="sm"
                     >
                       Сохранить
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
                       onClick={() => {
                         setNewNickname(nickname);
                         setIsEditing(false);
                         setNicknameError(null);
                       }}
-                      className="px-2 py-1 text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
+                      variant="secondary"
+                      size="sm"
                     >
                       Отмена
-                    </button>
+                    </Button>
                   </div>
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2 ml-1">
                   {nickname}
-                  <button
+                  <Button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="text-xs underline hover:no-underline"
+                    variant="secondary"
+                    size="sm"
+                    className="text-xs"
                   >
                     изменить
-                  </button>
+                  </Button>
                 </span>
               )}
             </li>

@@ -1,3 +1,7 @@
+export type ThreadCardProps = {
+  thread: Thread;
+};
+
 export type Thread = {
   id: number;
   board_id: number;
