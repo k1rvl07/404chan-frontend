@@ -1,3 +1,5 @@
+// D:\Git_Projects\404chan\frontend\src\components\pages\UserPage\UserPage.tsx
+
 "use client";
 
 import { AppContainer, ErrorScreen, Loading } from "@components";
@@ -31,6 +33,13 @@ export const UserPage = () => {
     { enabled: !!sessionKey },
   );
 
+  const { data: cooldownData } = useService<"user", "getCooldown">(
+    "user",
+    "getCooldown",
+    sessionKey ? { session_key: sessionKey } : undefined,
+    { enabled: !!sessionKey },
+  );
+
   const messagesCount = userData?.MessagesCount ?? 0;
   const threadsCount = userData?.ThreadsCount ?? 0;
   const [sessionDuration, setSessionDuration] = useState("00:00:00");
@@ -39,6 +48,21 @@ export const UserPage = () => {
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCooldown, setIsCooldown] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
+
+  // Инициализация cooldown из данных, полученных от сервера
+  useEffect(() => {
+    if (cooldownData?.lastNicknameChangeUnix) {
+      const serverTimestamp = cooldownData.lastNicknameChangeUnix;
+      const cooldownEndMs = serverTimestamp * 1000 + 60000;
+
+      // Проверяем, активен ли cooldown
+      const now = Date.now();
+      if (cooldownEndMs > now) {
+        setLastNicknameUpdateServerTime(serverTimestamp);
+        setNicknameChangeCooldownUntil(cooldownEndMs);
+      }
+    }
+  }, [cooldownData, setLastNicknameUpdateServerTime, setNicknameChangeCooldownUntil]);
 
   useEffect(() => {
     setNewNickname(nickname);

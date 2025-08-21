@@ -1,5 +1,5 @@
 import { apiClient } from "../api";
-import type { GetUserBySessionKeyParams, UpdateNicknameParams, User } from "./types";
+import type { GetCooldownResponse, GetUserBySessionKeyParams, UpdateNicknameParams, User } from "./types";
 
 export const userService = {
   getUserBySessionKey: async (params: GetUserBySessionKeyParams): Promise<User> => {
@@ -8,6 +8,10 @@ export const userService = {
   },
   updateNickname: async (params: UpdateNicknameParams): Promise<User> => {
     const res = await apiClient.patch("/user/nickname", params);
+    return res.data;
+  },
+  getCooldown: async (params: GetUserBySessionKeyParams): Promise<GetCooldownResponse> => {
+    const res = await apiClient.get("/user/cooldown", { params });
     return res.data;
   },
 };
