@@ -6,6 +6,6 @@ export type Thread = {
   created_at: string;
   updated_at: string;
   created_by: number;
-  authorNickname: string;
+  author_nickname: string;
   messages_count: number;
 };

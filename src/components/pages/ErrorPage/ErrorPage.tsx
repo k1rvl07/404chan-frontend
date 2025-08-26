@@ -1,6 +1,6 @@
 "use client";
 
-import { AppContainer } from "@components";
+import { AppContainer, Button } from "@components";
 import Link from "next/link";
 import type { ErrorPageProps } from "./types";
 
@@ -17,22 +17,11 @@ export const ErrorPage = ({ title = "400", message = "Страница не на
               {message}
             </p>
             {showHomeLink && (
-              <button
-                type="button"
-                className="
-                  px-6 py-3
-                  lg:text-base text-xs
-                  bg-tw-mono-black dark:bg-tw-mono-white
-                  text-tw-mono-white dark:text-tw-mono-black
-                  rounded-lg
-                  font-medium
-                  hover:bg-tw-mono-800 dark:hover:bg-tw-mono-200
-                "
-              >
+              <Button variant="primary" size="md">
                 <Link href="/" className="no-underline text-inherit">
                   Вернуться на главную
                 </Link>
-              </button>
+              </Button>
             )}
           </div>
         </section>

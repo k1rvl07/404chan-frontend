@@ -1,26 +1,50 @@
 import { apiClient } from "../api";
-import type { GetThreadCooldownParams, GetThreadCooldownResponse, GetThreadsByBoardIDResponse, Thread } from "./types";
+import type {
+  CreateThreadParams,
+  GetThreadByIDParams,
+  GetThreadByIDResponse,
+  GetThreadCooldownParams,
+  GetThreadCooldownResponse,
+  GetThreadsByBoardIDParams,
+  GetThreadsByBoardIDResponse,
+  Thread,
+} from "./types";
 
 export const threadService = {
-  createThread: async (params: { board_id: number; title: string; content: string }): Promise<Thread> => {
-    const { board_id, title, content } = params;
-    const res = await apiClient.post(`/threads/${board_id}`, { title, content });
+  createThread: async (params: CreateThreadParams): Promise<Thread> => {
+    const res = await apiClient.post(
+      `/threads/${params.board_id}`,
+      {
+        title: params.title,
+        content: params.content,
+      },
+      {
+        params: { session_key: params.session_key },
+      },
+    );
     return res.data;
   },
-  getThreadsByBoardID: async (params: {
-    board_id: number;
-    sort: string;
-    page?: number;
-    limit?: number;
-  }): Promise<GetThreadsByBoardIDResponse> => {
-    const { board_id, sort, page = 1, limit = 10 } = params;
-    const res = await apiClient.get(`/threads/${board_id}`, {
-      params: { sort, page, limit },
+
+  getThreadsByBoardID: async (params: GetThreadsByBoardIDParams): Promise<GetThreadsByBoardIDResponse> => {
+    const res = await apiClient.get(`/threads/${params.board_id}`, {
+      params: {
+        sort: params.sort,
+        page: params.page,
+        limit: params.limit,
+      },
     });
     return res.data;
   },
+
   getThreadCooldown: async (params: GetThreadCooldownParams): Promise<GetThreadCooldownResponse> => {
-    const res = await apiClient.get("/threads/cooldown", { params });
+    const res = await apiClient.get("/threads/cooldown", {
+      params: { session_key: params.session_key },
+    });
+    return res.data;
+  },
+
+  getThreadByID: async (params: GetThreadByIDParams): Promise<GetThreadByIDResponse> => {
+    const res = await apiClient.get(`/threads/thread/${params.id}`);
     return res.data;
   },
 };

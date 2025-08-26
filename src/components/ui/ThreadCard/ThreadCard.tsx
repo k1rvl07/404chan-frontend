@@ -4,10 +4,10 @@ import { ClockCircleOutlined, MessageOutlined, UserOutlined } from "@ant-design/
 import Link from "next/link";
 import type { ThreadCardProps } from "./types";
 
-export const ThreadCard = ({ thread }: ThreadCardProps) => {
+export const ThreadCard = ({ thread, boardSlug }: ThreadCardProps) => {
   return (
     <Link
-      href={`/boards/${thread.board_id}/threads/${thread.id}`}
+      href={`/boards/${boardSlug}/threads/${thread.id}`}
       className="
                 block 
                 border border-tw-light-divider dark:border-tw-dark-divider 
@@ -52,7 +52,7 @@ export const ThreadCard = ({ thread }: ThreadCardProps) => {
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1">
             <UserOutlined className="text-xs" />
-            {thread.authorNickname || "Аноним"}
+            {thread.author_nickname || "Аноним"}
           </span>
         </div>
 

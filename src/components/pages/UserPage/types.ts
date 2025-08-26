@@ -7,29 +7,3 @@ export type User = {
   MessagesCount: number;
   ThreadsCount: number;
 };
-
-export type WebSocketEvent =
-  | {
-      event: "nickname_updated";
-      user_id: number;
-      nickname: string;
-      timestamp: number;
-    }
-  | {
-      event: "stats_updated";
-      user_id: number;
-      message_count: number;
-      thread_count: number;
-    };
-
-export type AxiosError = {
-  response?: {
-    status: number;
-    data?: {
-      error?: string;
-    };
-  };
-  message?: string;
-};
-
-export type ExtendedError = Error & { onRetry?: () => void };

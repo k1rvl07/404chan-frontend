@@ -31,7 +31,6 @@ export const Button = ({
   };
 
   const disabledClasses = disabled ? "opacity-50 cursor-not-allowed" : "";
-
   const widthClass = fullWidth ? "w-full" : "";
 
   return (

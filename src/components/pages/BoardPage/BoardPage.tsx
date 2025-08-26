@@ -1,5 +1,4 @@
 "use client";
-
 import { AppContainer, ErrorPage, ErrorScreen, Loading, ThreadCard } from "@components";
 import { Button, Textarea } from "@components";
 import { useService, useServiceMutation } from "@hooks";
@@ -7,12 +6,13 @@ import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
 import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import type { Thread } from "./types";
 
 export const BoardPage = () => {
   const params = useParams();
+  const router = useRouter();
   const slug = params.slug as string;
   const [threadTitle, setThreadTitle] = useState("");
   const [threadContent, setThreadContent] = useState("");
@@ -21,10 +21,8 @@ export const BoardPage = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-
   const { threadCreationCooldownUntil, setThreadCreationCooldownUntil, setLastThreadCreationServerTime, sessionKey } =
     useSessionStore();
-
   const {
     data: board,
     isLoading: isLoadingBoard,
@@ -33,11 +31,11 @@ export const BoardPage = () => {
   } = useService<"board", "getBoardBySlug">("board", "getBoardBySlug", slug, {
     enabled: !!slug,
   });
-
   const {
     data: threadsData,
     isLoading: isLoadingThreads,
     isError: isThreadsError,
+    refetch: refetchThreads,
   } = useService<"thread", "getThreadsByBoardID">(
     "thread",
     "getThreadsByBoardID",
@@ -46,7 +44,6 @@ export const BoardPage = () => {
       enabled: !!board?.id,
     },
   );
-
   const { data: cooldownData, isError: isCooldownError } = useService<"thread", "getThreadCooldown">(
     "thread",
     "getThreadCooldown",
@@ -55,19 +52,27 @@ export const BoardPage = () => {
       enabled: !!sessionKey,
     },
   );
-
   const createThreadMutation = useServiceMutation<
     "thread",
     "createThread",
     { board_id: number; title: string; content: string },
     Thread
-  >("thread", "createThread");
+  >("thread", "createThread", {
+    onSuccess: (data) => {
+      const serverTimestamp = Math.floor(Date.now() / 1000);
+      setLastThreadCreationServerTime(serverTimestamp);
+      setThreadCreationCooldownUntil(Date.now() + 300000);
+      router.push(`/boards/${slug}/threads/${data.id}`);
+    },
+    onError: (error) => {
+      console.error("Failed to create thread:", error);
+    },
+  });
 
   useEffect(() => {
     if (cooldownData?.lastThreadCreationUnix) {
       const serverTimestamp = cooldownData.lastThreadCreationUnix;
       const cooldownEndMs = serverTimestamp * 1000 + 300000;
-
       const now = Date.now();
       if (cooldownEndMs > now) {
         setLastThreadCreationServerTime(serverTimestamp);
@@ -77,7 +82,7 @@ export const BoardPage = () => {
   }, [cooldownData, setLastThreadCreationServerTime, setThreadCreationCooldownUntil]);
 
   useWebSocketEvent("thread_created", (data) => {
-    if (data.event === "thread_created" && data.timestamp) {
+    if (data.event === "thread_created" && typeof data.timestamp === "number") {
       const serverTimestamp = data.timestamp;
       const cooldownEndMs = serverTimestamp * 1000 + 300000;
       setLastThreadCreationServerTime(serverTimestamp);
@@ -85,46 +90,42 @@ export const BoardPage = () => {
     }
   });
 
+  useWebSocketEvent("message_created", (data) => {
+    if (data.event === "message_created" && typeof data.thread_id === "number") {
+      refetchThreads();
+    }
+  });
+
   useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (!threadCreationCooldownUntil) {
       setIsCooldown(false);
       setTimeLeft(0);
       return;
     }
-
     const updateTimer = () => {
       const now = Date.now();
       const left = Math.ceil((threadCreationCooldownUntil - now) / 1000);
-
       if (left > 0) {
         setIsCooldown(true);
         setTimeLeft(left);
       } else {
         setIsCooldown(false);
         setTimeLeft(0);
+        setThreadCreationCooldownUntil(null);
       }
     };
-
     updateTimer();
     timerRef.current = setInterval(updateTimer, 1000);
-
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     };
-  }, [threadCreationCooldownUntil]);
-
-  useEffect(() => {
-    if (threadCreationCooldownUntil) {
-      const now = Date.now();
-      const left = Math.ceil((threadCreationCooldownUntil - now) / 1000);
-
-      if (left <= 0) {
-        setThreadCreationCooldownUntil(null);
-      }
-    }
   }, [threadCreationCooldownUntil, setThreadCreationCooldownUntil]);
 
   if (isBoardError || isThreadsError || isCooldownError) {
@@ -146,22 +147,11 @@ export const BoardPage = () => {
   const handleCreateThread = async (e: FormEvent) => {
     e.preventDefault();
     if (!(board && sessionKey) || threadTitle.trim().length < 3 || threadContent.trim().length < 3) return;
-
-    try {
-      const newThread = await createThreadMutation.mutateAsync({
-        board_id: board.id,
-        title: threadTitle,
-        content: threadContent,
-      });
-
-      const now = Math.floor(Date.now() / 1000);
-      setLastThreadCreationServerTime(now);
-      setThreadCreationCooldownUntil(now * 1000 + 300000);
-
-      window.location.href = `/boards/${board.id}/threads/${newThread.id}`;
-    } catch (error) {
-      console.error("Failed to create thread:", error);
-    }
+    await createThreadMutation.mutateAsync({
+      board_id: board.id,
+      title: threadTitle,
+      content: threadContent,
+    });
   };
 
   const handleSortChange = (newSort: string) => {
@@ -175,37 +165,34 @@ export const BoardPage = () => {
 
   const renderMobilePagination = () => {
     if (!threadsData?.pagination) return null;
-
     const { page, totalPages } = threadsData.pagination;
-
     if (totalPages <= 1) return null;
-
     return (
       <div className="flex justify-center mt-6">
         <nav className="inline-flex rounded-md">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={() => handlePageChange(page - 1)}
             disabled={page === 1}
-            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-tw-light-divider dark:border-tw-dark-divider bg-tw-light-surface dark:bg-tw-dark-surface text-sm font-medium text-tw-light-text-secondary dark:text-tw-dark-text-secondary hover:bg-tw-mono-50 dark:hover:bg-tw-mono-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-r-none"
           >
             Предыдущая
-          </button>
-          <button
-            type="button"
-            onClick={() => {}}
-            className="relative inline-flex items-center px-4 py-2 border-y border-tw-light-divider dark:border-tw-dark-divider bg-tw-mono-black dark:bg-tw-mono-white text-tw-mono-white dark:text-tw-mono-black text-sm font-medium"
-          >
+          </Button>
+          <Button type="button" variant="primary" size="md" disabled className="rounded-none min-w-0 px-4">
             {page}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={() => handlePageChange(page + 1)}
             disabled={page === totalPages}
-            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-tw-light-divider dark:border-tw-dark-divider bg-tw-light-surface dark:bg-tw-dark-surface text-sm font-medium text-tw-light-text-secondary dark:text-tw-dark-text-secondary hover:bg-tw-mono-50 dark:hover:bg-tw-mono-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-l-none"
           >
             Следующая
-          </button>
+          </Button>
         </nav>
       </div>
     );
@@ -213,83 +200,72 @@ export const BoardPage = () => {
 
   const renderDesktopPagination = () => {
     if (!threadsData?.pagination) return null;
-
     const { page, totalPages } = threadsData.pagination;
-
     if (totalPages <= 1) return null;
-
     const pages = [];
     const maxVisiblePages = 5;
-
     pages.push(1);
-
     let startPage = Math.max(2, page - Math.floor(maxVisiblePages / 2));
     const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 2);
-
     if (endPage - startPage < maxVisiblePages - 2) {
       startPage = Math.max(2, endPage - (maxVisiblePages - 2));
     }
-
     if (startPage > 2) {
       pages.push(-1);
     }
-
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
-
     if (endPage < totalPages - 1) {
       pages.push(-1);
     }
-
     if (totalPages > 1) {
       pages.push(totalPages);
     }
-
     return (
       <div className="flex justify-center mt-6">
         <nav className="inline-flex rounded-md shadow">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={() => handlePageChange(page - 1)}
             disabled={page === 1}
-            className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-tw-light-divider dark:border-tw-dark-divider bg-tw-light-surface dark:bg-tw-dark-surface text-sm font-medium text-tw-light-text-secondary dark:text-tw-dark-text-secondary hover:bg-tw-mono-50 dark:hover:bg-tw-mono-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-r-none"
           >
             Предыдущая
-          </button>
-
-          {pages.map((pageNum) =>
+          </Button>
+          {pages.map((pageNum, _index) =>
             pageNum === -1 ? (
               <span
-                key="ellipsis"
+                key={`ellipsis-${startPage}-${endPage}`}
                 className="relative inline-flex items-center px-4 py-2 border border-tw-light-divider dark:border-tw-dark-divider bg-tw-light-surface dark:bg-tw-dark-surface text-sm font-medium text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
               >
                 ...
               </span>
             ) : (
-              <button
-                type="button"
+              <Button
                 key={pageNum}
+                type="button"
+                variant={pageNum === page ? "primary" : "secondary"}
+                size="md"
                 onClick={() => handlePageChange(pageNum)}
-                className={`relative inline-flex items-center px-4 py-2 border border-tw-light-divider dark:border-tw-dark-divider text-sm font-medium ${
-                  pageNum === page
-                    ? "bg-tw-mono-black dark:bg-tw-mono-white text-tw-mono-white dark:text-tw-mono-black"
-                    : "bg-tw-light-surface dark:bg-tw-dark-surface text-tw-light-text-secondary dark:text-tw-dark-text-secondary hover:bg-tw-mono-50 dark:hover:bg-tw-mono-900"
-                }`}
+                className={pageNum === page ? "rounded-none" : "rounded-none"}
               >
                 {pageNum}
-              </button>
+              </Button>
             ),
           )}
-
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={() => handlePageChange(page + 1)}
             disabled={page === totalPages}
-            className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-tw-light-divider dark:border-tw-dark-divider bg-tw-light-surface dark:bg-tw-dark-surface text-sm font-medium text-tw-light-text-secondary dark:text-tw-dark-text-secondary hover:bg-tw-mono-50 dark:hover:bg-tw-mono-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-l-none"
           >
             Следующая
-          </button>
+          </Button>
         </nav>
       </div>
     );
@@ -300,7 +276,6 @@ export const BoardPage = () => {
       <AppContainer className="py-6">
         <section className="space-y-6">
           <h2 className="text-2xl font-bold mb-6 text-tw-mono-black dark:text-tw-mono-white">{board.title}</h2>
-
           {board.description ? (
             <p className="text-tw-light-text-primary dark:text-tw-dark-text-primary leading-relaxed max-w-2xl">
               {board.description}
@@ -310,7 +285,6 @@ export const BoardPage = () => {
               Описание отсутствует
             </p>
           )}
-
           <div className="mt-6 space-y-2 text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
             <div>
               <strong className="font-medium">Slug:</strong>{" "}
@@ -327,19 +301,18 @@ export const BoardPage = () => {
               })}
             </div>
           </div>
-
           <div className="border-t border-tw-light-divider dark:border-tw-dark-divider my-8" />
-
           <div className="space-y-4">
             <div>
               <h3 className="text-xl font-semibold text-tw-mono-black dark:text-tw-mono-white mb-4">Треды</h3>
-
               <div className="mb-6">
                 <div className="flex border-b border-tw-light-divider dark:border-tw-dark-divider">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={() => handleSortChange("new")}
-                    className={`px-4 py-2 text-sm font-medium relative ${
+                    className={`px-4 py-2 relative hover:!bg-transparent ${
                       sort === "new"
                         ? "text-tw-mono-black dark:text-tw-mono-white"
                         : "text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
@@ -349,11 +322,13 @@ export const BoardPage = () => {
                     {sort === "new" && (
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-tw-mono-black dark:bg-tw-mono-white" />
                     )}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={() => handleSortChange("popular")}
-                    className={`px-4 py-2 text-sm font-medium relative ${
+                    className={`px-4 py-2 relative hover:!bg-transparent ${
                       sort === "popular"
                         ? "text-tw-mono-black dark:text-tw-mono-white"
                         : "text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
@@ -363,11 +338,13 @@ export const BoardPage = () => {
                     {sort === "popular" && (
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-tw-mono-black dark:bg-tw-mono-white" />
                     )}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={() => handleSortChange("active")}
-                    className={`px-4 py-2 text-sm font-medium relative ${
+                    className={`px-4 py-2 relative hover:!bg-transparent ${
                       sort === "active"
                         ? "text-tw-mono-black dark:text-tw-mono-white"
                         : "text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
@@ -377,10 +354,9 @@ export const BoardPage = () => {
                     {sort === "active" && (
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-tw-mono-black dark:bg-tw-mono-white" />
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
-
               <div className="p-4 border border-tw-light-divider dark:border-tw-dark-divider rounded-lg bg-tw-light-background-paper dark:bg-tw-dark-background-paper mb-6">
                 <form onSubmit={handleCreateThread}>
                   <div className="flex flex-col gap-3">
@@ -397,7 +373,6 @@ export const BoardPage = () => {
                         helperText={`${threadTitle.length}/99`}
                       />
                     </div>
-
                     <div className="space-y-1">
                       <Textarea
                         value={threadContent}
@@ -411,7 +386,6 @@ export const BoardPage = () => {
                         helperText={`${threadContent.length}/999`}
                       />
                     </div>
-
                     <div className="flex flex-col lg:flex-row gap-3 lg:gap-0 justify-between items-center">
                       {isCooldown && (
                         <div className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
@@ -436,14 +410,13 @@ export const BoardPage = () => {
                 </form>
               </div>
             </div>
-
             {isLoadingThreads ? (
               <Loading />
             ) : threadsData && threadsData.threads.length > 0 ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4">
                   {threadsData.threads.map((thread) => (
-                    <ThreadCard key={thread.id} thread={thread} />
+                    <ThreadCard key={thread.id} thread={thread} boardSlug={board.slug} />
                   ))}
                 </div>
                 <div className="block lg:hidden">{renderMobilePagination()}</div>

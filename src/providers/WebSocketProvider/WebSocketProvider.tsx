@@ -8,12 +8,14 @@ export const WebSocketContext = createContext<WebSocketContextType>({
   socket: null,
   isConnected: false,
   send: () => {},
-  onMessage: () => {},
+  onMessage: () => () => {},
+  offMessage: () => {},
 });
 
 export const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const { sessionKey } = useSessionStore();
   const [isConnected, setIsConnected] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const messageHandlers = useRef<Array<(data: WebSocketMessage) => void>>([]);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,15 +45,20 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     }
 
     cleanupSocket();
+    setHasError(false);
 
     const url = `${env.WS_URL}?session_key=${sessionKey}`;
     const ws = new WebSocket(url);
 
-    ws.onopen = () => setIsConnected(true);
+    ws.onopen = () => {
+      setIsConnected(true);
+      setHasError(false);
+    };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+
         for (const handler of messageHandlers.current) {
           handler(data);
         }
@@ -62,13 +69,20 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
           useSessionStore.getState().setNicknameChangeCooldownUntil(cooldownEndMs);
         }
 
-        if (data.event === "thread_created" && data.data && typeof data.data.timestamp === "number") {
-          const cooldownEndMs = data.data.timestamp * 1000 + 300000;
-          useSessionStore.getState().setLastThreadCreationServerTime(data.data.timestamp);
+        if (data.event === "thread_created" && typeof data.timestamp === "number") {
+          const cooldownEndMs = data.timestamp * 1000 + 300000;
+          useSessionStore.getState().setLastThreadCreationServerTime(data.timestamp);
           useSessionStore.getState().setThreadCreationCooldownUntil(cooldownEndMs);
         }
-      } catch {
-        console.error("[WebSocket] Invalid message format");
+
+        if (data.event === "message_created" && typeof data.timestamp === "number") {
+          const cooldownEndMs = data.timestamp * 1000 + 10000;
+          useSessionStore.getState().setLastMessageCreationServerTime(data.timestamp);
+          useSessionStore.getState().setMessageCreationCooldownUntil(cooldownEndMs);
+        }
+      } catch (err) {
+        console.error("[WebSocket] Invalid message format:", err);
+        setHasError(true);
       }
     };
 
@@ -79,12 +93,18 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
       if (event.code === 1000 || event.code === 1001) return;
 
+      if (event.code === 1006 || event.code === 1002 || event.code >= 4000) {
+        setHasError(true);
+        return;
+      }
+
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       reconnectTimer.current = setTimeout(() => connect(), 3000);
     };
 
     ws.onerror = (error) => {
       console.error("[WebSocket] Error:", error);
+      setHasError(true);
     };
 
     socketRef.current = ws;
@@ -99,22 +119,48 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     };
   }, [sessionKey, connect, cleanupSocket]);
 
-  const send = useCallback((message: WebSocketMessage) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn("[WebSocket] Not connected, message not sent:", message);
+  const send = useCallback(
+    (message: WebSocketMessage) => {
+      if (hasError) {
+        console.warn("[WebSocket] Cannot send message: connection error occurred");
+        return;
+      }
+
+      if (socketRef.current?.readyState === WebSocket.OPEN) {
+        socketRef.current.send(JSON.stringify(message));
+      } else {
+        console.warn("[WebSocket] Not connected, message not sent:", message);
+      }
+    },
+    [hasError],
+  );
+
+  const onMessage = useCallback((callback: (data: WebSocketMessage) => void): (() => void) => {
+    messageHandlers.current.push(callback);
+
+    return () => {
+      const index = messageHandlers.current.indexOf(callback);
+      if (index > -1) {
+        messageHandlers.current.splice(index, 1);
+      }
+    };
+  }, []);
+
+  const offMessage = useCallback((callback: (data: WebSocketMessage) => void) => {
+    const index = messageHandlers.current.indexOf(callback);
+    if (index > -1) {
+      messageHandlers.current.splice(index, 1);
     }
   }, []);
 
-  const onMessage = useCallback((callback: (data: WebSocketMessage) => void) => {
-    messageHandlers.current.push(callback);
-  }, []);
-
   const value = useMemo(
-    () => ({ socket: socketRef.current, isConnected, send, onMessage }),
-    [isConnected, send, onMessage],
+    () => ({ socket: socketRef.current, isConnected, send, onMessage, offMessage }),
+    [isConnected, send, onMessage, offMessage],
   );
+
+  if (hasError) {
+    return <>{children}</>;
+  }
 
   return <WebSocketContext.Provider value={value}>{children}</WebSocketContext.Provider>;
 };

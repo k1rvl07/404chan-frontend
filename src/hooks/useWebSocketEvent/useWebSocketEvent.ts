@@ -7,15 +7,15 @@ export const useWebSocketEvent = (eventName: string, handler: Handler) => {
 
   useEffect(() => {
     const callback = (data: WebSocketEventData) => {
-      console.log("[WebSocket] Received event:", data);
       if (data.event === eventName) {
-        console.log(`[WebSocket] Matched event: ${eventName}`, data);
         handler(data);
       }
     };
 
-    onMessage(callback);
+    const unsubscribe = onMessage(callback);
 
-    return () => {};
+    return () => {
+      unsubscribe();
+    };
   }, [eventName, handler, onMessage]);
 };

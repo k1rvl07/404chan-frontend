@@ -28,7 +28,6 @@ export function useService<S extends ServiceName, M extends ServiceMethod<S>>(
     },
     enabled: options?.enabled !== false,
     staleTime: 0,
-    refetchOnMount: true,
     refetchOnWindowFocus: false,
   });
 

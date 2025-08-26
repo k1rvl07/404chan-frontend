@@ -1,15 +1,14 @@
-// D:\Git_Projects\404chan\frontend\src\components\pages\UserPage\UserPage.tsx
-
 "use client";
-
 import { AppContainer, ErrorScreen, Loading } from "@components";
 import { Button, Input } from "@components";
 import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
-import { useEffect, useState } from "react";
-import type { AxiosError, User } from "./types";
+import { getErrorStatus } from "@utils";
+import { notFound } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import type { User } from "./types";
 
 export const UserPage = () => {
   const {
@@ -26,6 +25,7 @@ export const UserPage = () => {
     data: userData,
     isLoading,
     isError: isProfileError,
+    error: profileError,
   } = useService<"user", "getUserBySessionKey">(
     "user",
     "getUserBySessionKey",
@@ -47,15 +47,13 @@ export const UserPage = () => {
   const [newNickname, setNewNickname] = useState(nickname);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCooldown, setIsCooldown] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Инициализация cooldown из данных, полученных от сервера
   useEffect(() => {
     if (cooldownData?.lastNicknameChangeUnix) {
       const serverTimestamp = cooldownData.lastNicknameChangeUnix;
       const cooldownEndMs = serverTimestamp * 1000 + 60000;
-
-      // Проверяем, активен ли cooldown
       const now = Date.now();
       if (cooldownEndMs > now) {
         setLastNicknameUpdateServerTime(serverTimestamp);
@@ -82,24 +80,8 @@ export const UserPage = () => {
       setIsEditing(false);
       setNicknameError(null);
     },
-    onError: (err: unknown) => {
-      let msg = "Не удалось изменить ник";
-
-      if (err && typeof err === "object") {
-        const axiosError = err as AxiosError;
-        const status = axiosError.response?.status;
-
-        if (status === 429) {
-          const left = nicknameChangeCooldownUntil ? Math.ceil((nicknameChangeCooldownUntil - Date.now()) / 1000) : 60;
-          msg = `Менять ник можно не чаще раза в минуту. Осталось: ${left} с.`;
-        } else if (axiosError.response?.data?.error) {
-          msg = axiosError.response.data.error;
-        } else if (axiosError.message) {
-          msg = axiosError.message;
-        }
-      }
-
-      setNicknameError(msg);
+    onError: (error) => {
+      console.error("Failed to update nickname:", error);
     },
   });
 
@@ -108,7 +90,6 @@ export const UserPage = () => {
     if (data.event === "nickname_updated" && data.user_id === userId && data.nickname !== nickname) {
       setNickname(data.nickname);
     }
-
     if (data.event === "nickname_updated" && data.timestamp) {
       const serverTimestamp = data.timestamp;
       const cooldownEndMs = serverTimestamp * 1000 + 60000;
@@ -118,12 +99,15 @@ export const UserPage = () => {
   });
 
   useEffect(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (!nicknameChangeCooldownUntil) {
       setIsCooldown(false);
       setTimeLeft(0);
       return;
     }
-
     const updateTimer = () => {
       const now = Date.now();
       const left = Math.ceil((nicknameChangeCooldownUntil - now) / 1000);
@@ -136,10 +120,14 @@ export const UserPage = () => {
         setNicknameChangeCooldownUntil(null);
       }
     };
-
     updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
+    timerRef.current = setInterval(updateTimer, 1000);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [nicknameChangeCooldownUntil, setNicknameChangeCooldownUntil]);
 
   const handleNicknameChange = () => {
@@ -180,12 +168,17 @@ export const UserPage = () => {
     }
   };
 
+  const handleCancelEdit = () => {
+    setNewNickname(nickname);
+    setIsEditing(false);
+    setNicknameError(null);
+  };
+
   useEffect(() => {
     if (!userData?.SessionStartedAt) {
       setSessionDuration("00:00:00");
       return;
     }
-
     const updateDuration = () => {
       try {
         const start = new Date(userData.SessionStartedAt).getTime();
@@ -204,7 +197,6 @@ export const UserPage = () => {
         setSessionDuration("00:00:00");
       }
     };
-
     updateDuration();
     const interval = setInterval(updateDuration, 1000);
     return () => clearInterval(interval);
@@ -224,6 +216,10 @@ export const UserPage = () => {
   }
 
   if (isProfileError) {
+    const status = getErrorStatus(profileError);
+    if (status === 404) {
+      notFound();
+    }
     return <ErrorScreen />;
   }
 
@@ -262,16 +258,7 @@ export const UserPage = () => {
                     >
                       Сохранить
                     </Button>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setNewNickname(nickname);
-                        setIsEditing(false);
-                        setNicknameError(null);
-                      }}
-                      variant="secondary"
-                      size="sm"
-                    >
+                    <Button type="button" onClick={handleCancelEdit} variant="secondary" size="sm">
                       Отмена
                     </Button>
                   </div>
