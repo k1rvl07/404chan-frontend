@@ -6,9 +6,6 @@ import type { Metadata } from "next";
 import { Roboto } from "next/font/google";
 import "antd/dist/reset.css";
 import "@styles";
-import { env } from "@utils";
-
-const { MINIO_BUCKET_URL } = env;
 
 const roboto = Roboto({
   weight: ["300", "400", "500", "700"],
@@ -26,7 +23,7 @@ export default function Layout({ children }: WithChildren) {
   return (
     <html lang="en" className={classnames(roboto.variable)}>
       <head>
-        <link rel="icon" href={`${MINIO_BUCKET_URL}/static/favicon/logo.ico`} />
+        <link rel="icon" href="../../public/logo.ico" />
       </head>
       <body className="bg-tw-light-background-paper dark:bg-tw-dark-background-paper">
         <Providers>
