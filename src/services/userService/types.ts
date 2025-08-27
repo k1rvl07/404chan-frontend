@@ -1,13 +1,3 @@
-export type User = {
-  ID: number;
-  Nickname: string;
-  CreatedAt: string;
-  SessionStartedAt: string;
-  SessionKey: string;
-  MessagesCount: number;
-  ThreadsCount: number;
-};
-
 export type GetUserBySessionKeyParams = {
   session_key: string;
 };

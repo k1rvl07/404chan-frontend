@@ -1,14 +1,4 @@
-export type Thread = {
-  id: number;
-  board_id: number;
-  title: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  created_by: number;
-  author_nickname: string;
-  messages_count: number;
-};
+import type { Thread } from "@types";
 
 export type CreateThreadParams = {
   board_id: number;

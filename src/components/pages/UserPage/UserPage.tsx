@@ -5,10 +5,10 @@ import { useService } from "@hooks";
 import { useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
+import type { User } from "@types";
 import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { User } from "./types";
 
 export const UserPage = () => {
   const {

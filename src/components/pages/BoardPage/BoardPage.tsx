@@ -5,11 +5,11 @@ import { Pagination } from "@components";
 import { useService, useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
+import type { Thread } from "@types";
 import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
 import { useParams, useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useRef, useState } from "react";
-import type { Thread } from "./types";
 
 export const BoardPage = () => {
   const params = useParams();

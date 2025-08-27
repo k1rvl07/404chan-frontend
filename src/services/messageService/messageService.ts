@@ -5,8 +5,9 @@ import type {
   GetMessageByThreadIDResponse,
   GetMessageCooldownParams,
   GetMessageCooldownResponse,
-  Message,
 } from "./types";
+
+import type { Message } from "@types";
 
 export const messageService = {
   createMessage: async (params: CreateMessageParams): Promise<Message> => {

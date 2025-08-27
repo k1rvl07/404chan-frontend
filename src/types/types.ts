@@ -1,83 +1,45 @@
-import type { MouseEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 
 export type WithChildren<T extends Record<string, unknown> = Record<string, unknown>> = T & {
   children?: ReactNode;
 };
 
-export type WithClassName = {
-  className?: string;
+export type Message = {
+  id: number;
+  thread_id: number;
+  user_id: number;
+  parent_id: number | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  author_nickname: string;
 };
 
-export type WithId = {
-  id?: string;
+export type User = {
+  ID: number;
+  Nickname: string;
+  CreatedAt: string;
+  SessionStartedAt: string;
+  SessionKey: string;
+  MessagesCount: number;
+  ThreadsCount: number;
 };
 
-export type WithInputOnChange = {
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+export type CreateSessionResponse = {
+  ID: number;
+  Nickname: string;
+  CreatedAt: string;
+  SessionKey: string;
 };
 
-export type WithSelectOnChange = {
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-};
-
-export type WithOnSubmit = {
-  onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void;
-};
-
-export type WithOnClick<T = HTMLElement> = {
-  onClick?: (e: MouseEvent<T>) => void;
-};
-
-export type WithValue = {
-  value?: string | number;
-};
-
-export type WithAction = {
-  action?: string;
-};
-
-export type WithDisabled = {
-  disabled?: boolean;
-};
-
-export type WithCustom<T = unknown> = {
-  custom?: T;
-};
-
-export type WithHref = {
-  href?: string;
-};
-
-export type AsTag =
-  | "p"
-  | "h1"
-  | "h2"
-  | "h3"
-  | "h4"
-  | "h5"
-  | "h6"
-  | "span"
-  | "div"
-  | "ul"
-  | "ol"
-  | "li"
-  | "label"
-  | "a"
-  | "button"
-  | "input"
-  | "img"
-  | "form"
-  | "select"
-  | "nav"
-  | "option";
-
-export type InputType = "text" | "email" | "password" | "number" | "checkbox" | "radio";
-
-export type CustomComponent<P extends Record<string, unknown> = Record<string, unknown>> =
-  React.ForwardRefExoticComponent<React.PropsWithoutRef<P> & React.RefAttributes<unknown>>;
-
-export type NavLink = {
-  id: string;
-  name: string;
-  link: string;
+export type Thread = {
+  id: number;
+  board_id: number;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  created_by: number;
+  author_nickname: string;
+  messages_count: number;
 };

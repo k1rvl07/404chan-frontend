@@ -1,3 +1,4 @@
+import type { Thread } from "@types";
 import { apiClient } from "../api";
 import type {
   CreateThreadParams,
@@ -7,7 +8,6 @@ import type {
   GetThreadCooldownResponse,
   GetThreadsByBoardIDParams,
   GetThreadsByBoardIDResponse,
-  Thread,
 } from "./types";
 
 export const threadService = {

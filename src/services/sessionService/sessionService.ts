@@ -1,5 +1,5 @@
+import type { CreateSessionResponse } from "@types";
 import { apiClient } from "../api";
-import type { CreateSessionResponse } from "./types";
 
 export const sessionService = {
   createSession: async (): Promise<CreateSessionResponse> => {
