@@ -104,8 +104,9 @@ export const ThreadPage = () => {
         useSessionStore.getState().setLastMessageCreationServerTime(serverTimestamp);
         useSessionStore.getState().setMessageCreationCooldownUntil(cooldownEndMs);
         useSessionStore.getState().incrementMessagesCount();
-        refetchMessages();
       }
+
+      refetchMessages();
     }
   });
 
