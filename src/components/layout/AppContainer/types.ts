@@ -1,3 +1,5 @@
-import type { WithChildren, WithClassName } from "@types";
+import type { WithChildren } from "@types";
 
-export type AppContainerProps = WithChildren & WithClassName;
+export type AppContainerProps = WithChildren & {
+  className?: string;
+};
