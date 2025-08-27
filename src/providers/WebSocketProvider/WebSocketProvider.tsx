@@ -26,7 +26,6 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
       socketRef.current.onmessage = null;
       socketRef.current.onclose = null;
       socketRef.current.onerror = null;
-
       if (socketRef.current.readyState !== WebSocket.CLOSED) {
         socketRef.current.close(1000, "Cleanup");
       }
@@ -36,17 +35,14 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
   const connect = useCallback(() => {
     if (!sessionKey) return;
-
     if (
       socketRef.current &&
       (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)
     ) {
       return;
     }
-
     cleanupSocket();
     setHasError(false);
-
     const url = `${env.WS_URL}?session_key=${sessionKey}`;
     const ws = new WebSocket(url);
 
@@ -58,27 +54,28 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         for (const handler of messageHandlers.current) {
           handler(data);
-        }
-
-        if (data.event === "nickname_updated" && typeof data.timestamp === "number") {
-          const cooldownEndMs = data.timestamp * 1000 + 60000;
-          useSessionStore.getState().setLastNicknameUpdateServerTime(data.timestamp);
-          useSessionStore.getState().setNicknameChangeCooldownUntil(cooldownEndMs);
         }
 
         if (data.event === "thread_created" && typeof data.timestamp === "number") {
           const cooldownEndMs = data.timestamp * 1000 + 300000;
           useSessionStore.getState().setLastThreadCreationServerTime(data.timestamp);
           useSessionStore.getState().setThreadCreationCooldownUntil(cooldownEndMs);
+          useSessionStore.getState().incrementThreadsCount();
         }
 
         if (data.event === "message_created" && typeof data.timestamp === "number") {
           const cooldownEndMs = data.timestamp * 1000 + 10000;
           useSessionStore.getState().setLastMessageCreationServerTime(data.timestamp);
           useSessionStore.getState().setMessageCreationCooldownUntil(cooldownEndMs);
+          useSessionStore.getState().incrementMessagesCount();
+        }
+
+        if (data.event === "nickname_updated" && typeof data.timestamp === "number") {
+          const cooldownEndMs = data.timestamp * 1000 + 60000;
+          useSessionStore.getState().setLastNicknameUpdateServerTime(data.timestamp);
+          useSessionStore.getState().setNicknameChangeCooldownUntil(cooldownEndMs);
         }
       } catch (err) {
         console.error("[WebSocket] Invalid message format:", err);
@@ -90,14 +87,11 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
       setIsConnected(false);
       socketRef.current = null;
       messageHandlers.current = [];
-
       if (event.code === 1000 || event.code === 1001) return;
-
       if (event.code === 1006 || event.code === 1002 || event.code >= 4000) {
         setHasError(true);
         return;
       }
-
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       reconnectTimer.current = setTimeout(() => connect(), 3000);
     };
@@ -112,7 +106,6 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
   useEffect(() => {
     if (sessionKey) connect();
-
     return () => {
       cleanupSocket();
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
@@ -125,7 +118,6 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
         console.warn("[WebSocket] Cannot send message: connection error occurred");
         return;
       }
-
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.send(JSON.stringify(message));
       } else {
@@ -137,7 +129,6 @@ export const WebSocketProvider = ({ children }: { children: React.ReactNode }) =
 
   const onMessage = useCallback((callback: (data: WebSocketMessage) => void): (() => void) => {
     messageHandlers.current.push(callback);
-
     return () => {
       const index = messageHandlers.current.indexOf(callback);
       if (index > -1) {

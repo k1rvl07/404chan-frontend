@@ -9,7 +9,8 @@ export type SessionState = {
   lastThreadCreationServerTime: number | null;
   messageCreationCooldownUntil: number | null;
   lastMessageCreationServerTime: number | null;
-
+  messagesCount: number;
+  threadsCount: number;
   setNickname: (nickname: string) => void;
   setNicknameChangeCooldownUntil: (timestamp: number | null) => void;
   setLastNicknameUpdateServerTime: (timestamp: number | null) => void;
@@ -17,5 +18,9 @@ export type SessionState = {
   setLastThreadCreationServerTime: (timestamp: number | null) => void;
   setMessageCreationCooldownUntil: (timestamp: number | null) => void;
   setLastMessageCreationServerTime: (timestamp: number | null) => void;
+  setMessagesCount: (count: number) => void;
+  setThreadsCount: (count: number) => void;
+  incrementMessagesCount: () => void;
+  incrementThreadsCount: () => void;
   clear: () => void;
 };

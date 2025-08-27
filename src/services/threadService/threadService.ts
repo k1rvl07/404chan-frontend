@@ -48,5 +48,3 @@ export const threadService = {
     return res.data;
   },
 };
-
-export type ThreadService = typeof threadService;

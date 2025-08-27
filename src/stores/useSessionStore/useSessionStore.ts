@@ -5,7 +5,7 @@ import type { SessionState } from "./types";
 export const useSessionStore = create<SessionState>()(
   subscribeWithSelector(
     persist<SessionState>(
-      (set) => ({
+      (set, _get) => ({
         sessionKey: null,
         userId: null,
         nickname: "Аноним",
@@ -16,7 +16,8 @@ export const useSessionStore = create<SessionState>()(
         lastThreadCreationServerTime: null,
         messageCreationCooldownUntil: null,
         lastMessageCreationServerTime: null,
-
+        messagesCount: 0,
+        threadsCount: 0,
         setNickname: (nickname: string) => set({ nickname }),
         setNicknameChangeCooldownUntil: (timestamp: number | null) => set({ nicknameChangeCooldownUntil: timestamp }),
         setLastNicknameUpdateServerTime: (timestamp: number | null) => set({ lastNicknameUpdateServerTime: timestamp }),
@@ -25,7 +26,10 @@ export const useSessionStore = create<SessionState>()(
         setMessageCreationCooldownUntil: (timestamp: number | null) => set({ messageCreationCooldownUntil: timestamp }),
         setLastMessageCreationServerTime: (timestamp: number | null) =>
           set({ lastMessageCreationServerTime: timestamp }),
-
+        setMessagesCount: (count: number) => set({ messagesCount: count }),
+        setThreadsCount: (count: number) => set({ threadsCount: count }),
+        incrementMessagesCount: () => set((state) => ({ messagesCount: state.messagesCount + 1 })),
+        incrementThreadsCount: () => set((state) => ({ threadsCount: state.threadsCount + 1 })),
         clear: () => {
           set({
             sessionKey: null,
@@ -38,6 +42,8 @@ export const useSessionStore = create<SessionState>()(
             lastThreadCreationServerTime: null,
             messageCreationCooldownUntil: null,
             lastMessageCreationServerTime: null,
+            messagesCount: 0,
+            threadsCount: 0,
           });
         },
       }),

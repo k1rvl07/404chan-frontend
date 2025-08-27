@@ -1,6 +1,7 @@
 "use client";
 import { AppContainer, ErrorPage, ErrorScreen, Loading, ThreadCard } from "@components";
 import { Button, Textarea } from "@components";
+import { Pagination } from "@components";
 import { useService, useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
@@ -163,114 +164,6 @@ export const BoardPage = () => {
     setCurrentPage(page);
   };
 
-  const renderMobilePagination = () => {
-    if (!threadsData?.pagination) return null;
-    const { page, totalPages } = threadsData.pagination;
-    if (totalPages <= 1) return null;
-    return (
-      <div className="flex justify-center mt-6">
-        <nav className="inline-flex rounded-md">
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1}
-            className="rounded-r-none"
-          >
-            Предыдущая
-          </Button>
-          <Button type="button" variant="primary" size="md" disabled className="rounded-none min-w-0 px-4">
-            {page}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === totalPages}
-            className="rounded-l-none"
-          >
-            Следующая
-          </Button>
-        </nav>
-      </div>
-    );
-  };
-
-  const renderDesktopPagination = () => {
-    if (!threadsData?.pagination) return null;
-    const { page, totalPages } = threadsData.pagination;
-    if (totalPages <= 1) return null;
-    const pages = [];
-    const maxVisiblePages = 5;
-    pages.push(1);
-    let startPage = Math.max(2, page - Math.floor(maxVisiblePages / 2));
-    const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 2);
-    if (endPage - startPage < maxVisiblePages - 2) {
-      startPage = Math.max(2, endPage - (maxVisiblePages - 2));
-    }
-    if (startPage > 2) {
-      pages.push(-1);
-    }
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-    if (endPage < totalPages - 1) {
-      pages.push(-1);
-    }
-    if (totalPages > 1) {
-      pages.push(totalPages);
-    }
-    return (
-      <div className="flex justify-center mt-6">
-        <nav className="inline-flex rounded-md shadow">
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1}
-            className="rounded-r-none"
-          >
-            Предыдущая
-          </Button>
-          {pages.map((pageNum, _index) =>
-            pageNum === -1 ? (
-              <span
-                key={`ellipsis-${startPage}-${endPage}`}
-                className="relative inline-flex items-center px-4 py-2 border border-tw-light-divider dark:border-tw-dark-divider bg-tw-light-surface dark:bg-tw-dark-surface text-sm font-medium text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
-              >
-                ...
-              </span>
-            ) : (
-              <Button
-                key={pageNum}
-                type="button"
-                variant={pageNum === page ? "primary" : "secondary"}
-                size="md"
-                onClick={() => handlePageChange(pageNum)}
-                className={pageNum === page ? "rounded-none" : "rounded-none"}
-              >
-                {pageNum}
-              </Button>
-            ),
-          )}
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === totalPages}
-            className="rounded-l-none"
-          >
-            Следующая
-          </Button>
-        </nav>
-      </div>
-    );
-  };
-
   return (
     <main className="min-h-screen">
       <AppContainer className="py-6">
@@ -419,8 +312,11 @@ export const BoardPage = () => {
                     <ThreadCard key={thread.id} thread={thread} boardSlug={board.slug} />
                   ))}
                 </div>
-                <div className="block lg:hidden">{renderMobilePagination()}</div>
-                <div className="hidden lg:block">{renderDesktopPagination()}</div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={threadsData.pagination.totalPages}
+                  onPageChange={handlePageChange}
+                />
               </div>
             ) : (
               <div className="text-center py-8 bg-tw-light-surface dark:bg-tw-dark-surface border border-tw-light-divider dark:border-tw-dark-divider rounded text-tw-light-text-secondary dark:text-tw-dark-text-secondary">

@@ -19,6 +19,8 @@ export const UserPage = () => {
     nicknameChangeCooldownUntil,
     setNicknameChangeCooldownUntil,
     setLastNicknameUpdateServerTime,
+    messagesCount: storeMessagesCount,
+    threadsCount: storeThreadsCount,
   } = useSessionStore();
 
   const {
@@ -33,15 +35,18 @@ export const UserPage = () => {
     { enabled: !!sessionKey },
   );
 
-  const { data: cooldownData } = useService<"user", "getCooldown">(
-    "user",
-    "getCooldown",
-    sessionKey ? { session_key: sessionKey } : undefined,
-    { enabled: !!sessionKey },
-  );
+  const [initialized, setInitialized] = useState(false);
+  const messagesCount = storeMessagesCount;
+  const threadsCount = storeThreadsCount;
 
-  const messagesCount = userData?.MessagesCount ?? 0;
-  const threadsCount = userData?.ThreadsCount ?? 0;
+  useEffect(() => {
+    if (userData && !initialized) {
+      useSessionStore.getState().setMessagesCount(userData.MessagesCount);
+      useSessionStore.getState().setThreadsCount(userData.ThreadsCount);
+      setInitialized(true);
+    }
+  }, [userData, initialized]);
+
   const [sessionDuration, setSessionDuration] = useState("00:00:00");
   const [isEditing, setIsEditing] = useState(false);
   const [newNickname, setNewNickname] = useState(nickname);
@@ -51,20 +56,36 @@ export const UserPage = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (cooldownData?.lastNicknameChangeUnix) {
-      const serverTimestamp = cooldownData.lastNicknameChangeUnix;
-      const cooldownEndMs = serverTimestamp * 1000 + 60000;
-      const now = Date.now();
-      if (cooldownEndMs > now) {
-        setLastNicknameUpdateServerTime(serverTimestamp);
-        setNicknameChangeCooldownUntil(cooldownEndMs);
-      }
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
-  }, [cooldownData, setLastNicknameUpdateServerTime, setNicknameChangeCooldownUntil]);
-
-  useEffect(() => {
-    setNewNickname(nickname);
-  }, [nickname]);
+    if (!nicknameChangeCooldownUntil) {
+      setIsCooldown(false);
+      setTimeLeft(0);
+      return;
+    }
+    const updateTimer = () => {
+      const now = Date.now();
+      const left = Math.ceil((nicknameChangeCooldownUntil - now) / 1000);
+      if (left > 0) {
+        setIsCooldown(true);
+        setTimeLeft(left);
+      } else {
+        setIsCooldown(false);
+        setTimeLeft(0);
+        setNicknameChangeCooldownUntil(null);
+      }
+    };
+    updateTimer();
+    timerRef.current = setInterval(updateTimer, 1000);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [nicknameChangeCooldownUntil, setNicknameChangeCooldownUntil]);
 
   const { mutate: updateNickname } = useServiceMutation<
     "user",
@@ -99,36 +120,8 @@ export const UserPage = () => {
   });
 
   useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (!nicknameChangeCooldownUntil) {
-      setIsCooldown(false);
-      setTimeLeft(0);
-      return;
-    }
-    const updateTimer = () => {
-      const now = Date.now();
-      const left = Math.ceil((nicknameChangeCooldownUntil - now) / 1000);
-      if (left > 0) {
-        setIsCooldown(true);
-        setTimeLeft(left);
-      } else {
-        setIsCooldown(false);
-        setTimeLeft(0);
-        setNicknameChangeCooldownUntil(null);
-      }
-    };
-    updateTimer();
-    timerRef.current = setInterval(updateTimer, 1000);
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [nicknameChangeCooldownUntil, setNicknameChangeCooldownUntil]);
+    setNewNickname(nickname);
+  }, [nickname]);
 
   const handleNicknameChange = () => {
     const trimmed = newNickname.trim();
