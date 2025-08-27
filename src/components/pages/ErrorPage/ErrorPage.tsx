@@ -4,7 +4,7 @@ import { AppContainer, Button } from "@components";
 import Link from "next/link";
 import type { ErrorPageProps } from "./types";
 
-export const ErrorPage = ({ title = "400", message = "Страница не найдена", showHomeLink = true }: ErrorPageProps) => {
+export const ErrorPage = ({ title = "404", message = "Страница не найдена", showHomeLink = true }: ErrorPageProps) => {
   return (
     <main>
       <AppContainer>

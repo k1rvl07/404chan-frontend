@@ -86,8 +86,14 @@ export const BoardPage = () => {
     if (data.event === "thread_created" && typeof data.timestamp === "number") {
       const serverTimestamp = data.timestamp;
       const cooldownEndMs = serverTimestamp * 1000 + 300000;
-      setLastThreadCreationServerTime(serverTimestamp);
-      setThreadCreationCooldownUntil(cooldownEndMs);
+
+      const currentUserID = useSessionStore.getState().userId;
+
+      if (data.user_id === currentUserID) {
+        useSessionStore.getState().setLastThreadCreationServerTime(serverTimestamp);
+        useSessionStore.getState().setThreadCreationCooldownUntil(cooldownEndMs);
+        useSessionStore.getState().incrementThreadsCount();
+      }
     }
   });
 

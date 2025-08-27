@@ -23,7 +23,7 @@ export default function Layout({ children }: WithChildren) {
   return (
     <html lang="en" className={classnames(roboto.variable)}>
       <head>
-        <link rel="icon" href="../../public/logo.ico" />
+        <link rel="icon" href="/logo.ico" />
       </head>
       <body className="bg-tw-light-background-paper dark:bg-tw-dark-background-paper">
         <Providers>

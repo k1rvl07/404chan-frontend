@@ -97,9 +97,15 @@ export const ThreadPage = () => {
     if (data.event === "message_created" && typeof data.timestamp === "number") {
       const serverTimestamp = data.timestamp;
       const cooldownEndMs = serverTimestamp * 1000 + 10000;
-      setLastMessageCreationServerTime(serverTimestamp);
-      setMessageCreationCooldownUntil(cooldownEndMs);
-      refetchMessages();
+
+      const currentUserID = useSessionStore.getState().userId;
+
+      if (data.user_id === currentUserID) {
+        useSessionStore.getState().setLastMessageCreationServerTime(serverTimestamp);
+        useSessionStore.getState().setMessageCreationCooldownUntil(cooldownEndMs);
+        useSessionStore.getState().incrementMessagesCount();
+        refetchMessages();
+      }
     }
   });
 
