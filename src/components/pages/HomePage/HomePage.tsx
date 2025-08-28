@@ -1,17 +1,53 @@
 "use client";
 
-import { AppContainer, ErrorScreen, Loading } from "@components";
+import { AppContainer, ErrorScreen, Loading, ThreadCard } from "@components";
+import { ThreadSort } from "@components";
 import { useService } from "@hooks";
+import { useWebSocketEvent } from "@hooks";
+import type { SortOption } from "@types";
 import Link from "next/link";
+import { useState } from "react";
 
 export const HomePage = () => {
-  const { data: boards, isLoading, isError } = useService<"board", "getBoards">("board", "getBoards", undefined, {});
+  const [sort, setSort] = useState<SortOption>("new");
 
-  if (isLoading) {
+  const {
+    data: threadsData,
+    isLoading,
+    isError,
+    refetch,
+  } = useService<"thread", "getTopThreads">(
+    "thread",
+    "getTopThreads",
+    { sort, page: 1, limit: 10 },
+    {
+      enabled: true,
+    },
+  );
+
+  const {
+    data: boards,
+    isLoading: isLoadingBoards,
+    isError: isBoardsError,
+  } = useService<"board", "getBoards">("board", "getBoards", undefined, {});
+
+  useWebSocketEvent("message_created", (data) => {
+    if (data.event === "message_created" && typeof data.thread_id === "number") {
+      refetch();
+    }
+  });
+
+  useWebSocketEvent("thread_created", (data) => {
+    if (data.event === "thread_created") {
+      refetch();
+    }
+  });
+
+  if (isLoadingBoards || isLoading) {
     return <Loading />;
   }
 
-  if (isError) {
+  if (isBoardsError || isError) {
     return <ErrorScreen />;
   }
 
@@ -31,8 +67,7 @@ export const HomePage = () => {
             Только ты, твой пост и интернет.
           </p>
         </section>
-
-        <section className="max-w-2xl mx-auto">
+        <section className="max-w-2xl mx-auto mb-12">
           <h3 className="text-xl font-semibold mb-6 text-tw-mono-black dark:text-tw-mono-white text-center">Доски</h3>
 
           {!boards || boards.length === 0 ? (
@@ -61,6 +96,27 @@ export const HomePage = () => {
               ))}
             </ul>
           )}
+        </section>
+        <section className="max-w-4xl mx-auto space-y-6">
+          <h3 className="text-xl font-semibold text-tw-mono-black dark:text-tw-mono-white text-center">Топ тредов</h3>
+
+          <ThreadSort currentSort={sort} onChange={setSort} />
+
+          <div className="bg-tw-light-surface dark:bg-tw-dark-surface p-4 rounded border border-tw-light-divider dark:border-tw-dark-divider">
+            {isError ? (
+              <p className="text-tw-light-text-secondary dark:text-tw-dark-text-secondary text-sm">
+                Ошибка загрузки тредов
+              </p>
+            ) : !threadsData?.threads.length ? (
+              <p className="text-tw-light-text-secondary dark:text-tw-dark-text-secondary text-sm">Нет тредов</p>
+            ) : (
+              <div className="space-y-3">
+                {threadsData.threads.map((thread) => (
+                  <ThreadCard key={thread.id} thread={thread} boardSlug={thread.board_slug} />
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </AppContainer>
     </main>

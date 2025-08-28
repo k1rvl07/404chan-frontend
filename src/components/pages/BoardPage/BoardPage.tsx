@@ -2,10 +2,12 @@
 import { AppContainer, ErrorPage, ErrorScreen, Loading, ThreadCard } from "@components";
 import { Button, Textarea } from "@components";
 import { Pagination } from "@components";
+import { ThreadSort } from "@components";
 import { useService, useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
 import { useSessionStore } from "@stores";
 import type { Thread } from "@types";
+import type { SortOption } from "@types";
 import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
 import { useParams, useRouter } from "next/navigation";
@@ -17,7 +19,7 @@ export const BoardPage = () => {
   const slug = params.slug as string;
   const [threadTitle, setThreadTitle] = useState("");
   const [threadContent, setThreadContent] = useState("");
-  const [sort, setSort] = useState("new");
+  const [sort, setSort] = useState<SortOption>("new");
   const [isCooldown, setIsCooldown] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,7 +163,7 @@ export const BoardPage = () => {
     });
   };
 
-  const handleSortChange = (newSort: string) => {
+  const handleSortChange = (newSort: SortOption) => {
     setSort(newSort);
     setCurrentPage(1);
   };
@@ -205,56 +207,7 @@ export const BoardPage = () => {
             <div>
               <h3 className="text-xl font-semibold text-tw-mono-black dark:text-tw-mono-white mb-4">Треды</h3>
               <div className="mb-6">
-                <div className="flex border-b border-tw-light-divider dark:border-tw-dark-divider">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="md"
-                    onClick={() => handleSortChange("new")}
-                    className={`px-4 py-2 relative hover:!bg-transparent ${
-                      sort === "new"
-                        ? "text-tw-mono-black dark:text-tw-mono-white"
-                        : "text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
-                    }`}
-                  >
-                    Новые
-                    {sort === "new" && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-tw-mono-black dark:bg-tw-mono-white" />
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="md"
-                    onClick={() => handleSortChange("popular")}
-                    className={`px-4 py-2 relative hover:!bg-transparent ${
-                      sort === "popular"
-                        ? "text-tw-mono-black dark:text-tw-mono-white"
-                        : "text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
-                    }`}
-                  >
-                    Популярные
-                    {sort === "popular" && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-tw-mono-black dark:bg-tw-mono-white" />
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="md"
-                    onClick={() => handleSortChange("active")}
-                    className={`px-4 py-2 relative hover:!bg-transparent ${
-                      sort === "active"
-                        ? "text-tw-mono-black dark:text-tw-mono-white"
-                        : "text-tw-light-text-secondary dark:text-tw-dark-text-secondary"
-                    }`}
-                  >
-                    Активные
-                    {sort === "active" && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-tw-mono-black dark:bg-tw-mono-white" />
-                    )}
-                  </Button>
-                </div>
+                <ThreadSort currentSort={sort} onChange={handleSortChange} />
               </div>
               <div className="p-4 border border-tw-light-divider dark:border-tw-dark-divider rounded-lg bg-tw-light-background-paper dark:bg-tw-dark-background-paper mb-6">
                 <form onSubmit={handleCreateThread}>

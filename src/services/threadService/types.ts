@@ -14,6 +14,12 @@ export type GetThreadsByBoardIDParams = {
   limit?: number;
 };
 
+export type GetTopThreadsParams = {
+  sort: "new" | "popular" | "active";
+  page?: number;
+  limit?: number;
+};
+
 export type GetThreadCooldownParams = {
   session_key: string;
 };
@@ -35,5 +41,7 @@ export type GetThreadsByBoardIDResponse = {
     totalPages: number;
   };
 };
+
+export type GetTopThreadsResponse = GetThreadsByBoardIDResponse;
 
 export type GetThreadByIDResponse = Thread;

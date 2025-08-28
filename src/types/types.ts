@@ -35,6 +35,7 @@ export type CreateSessionResponse = {
 export type Thread = {
   id: number;
   board_id: number;
+  board_slug: string;
   title: string;
   content: string;
   created_at: string;
@@ -43,3 +44,5 @@ export type Thread = {
   author_nickname: string;
   messages_count: number;
 };
+
+export type SortOption = "new" | "popular" | "active";

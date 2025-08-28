@@ -211,11 +211,9 @@ export const ThreadPage = () => {
       <AppContainer className="py-6">
         <section className="space-y-6">
           <h2 className="text-2xl font-bold mb-6 text-tw-mono-black dark:text-tw-mono-white">{threadData.title}</h2>
-          {threadData.content && (
-            <p className="text-tw-light-text-primary dark:text-tw-dark-text-primary leading-relaxed max-w-2xl">
-              {threadData.content}
-            </p>
-          )}
+          <p className="text-tw-light-text-primary dark:text-tw-dark-text-primary leading-relaxed max-w-2xl">
+            {threadData.content}
+          </p>
           <div className="mt-6 space-y-2 text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
             <div>
               <strong className="font-medium">Автор:</strong> {threadData.author_nickname || "Аноним"}

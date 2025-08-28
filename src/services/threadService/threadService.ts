@@ -8,6 +8,8 @@ import type {
   GetThreadCooldownResponse,
   GetThreadsByBoardIDParams,
   GetThreadsByBoardIDResponse,
+  GetTopThreadsParams,
+  GetTopThreadsResponse,
 } from "./types";
 
 export const threadService = {
@@ -27,6 +29,17 @@ export const threadService = {
 
   getThreadsByBoardID: async (params: GetThreadsByBoardIDParams): Promise<GetThreadsByBoardIDResponse> => {
     const res = await apiClient.get(`/threads/${params.board_id}`, {
+      params: {
+        sort: params.sort,
+        page: params.page,
+        limit: params.limit,
+      },
+    });
+    return res.data;
+  },
+
+  getTopThreads: async (params: GetTopThreadsParams): Promise<GetTopThreadsResponse> => {
+    const res = await apiClient.get("/threads/top", {
       params: {
         sort: params.sort,
         page: params.page,
