@@ -18,6 +18,7 @@ export const useSessionStore = create<SessionState>()(
         lastMessageCreationServerTime: null,
         messagesCount: 0,
         threadsCount: 0,
+        setUserId: (id: number | null) => set({ userId: id }),
         setNickname: (nickname: string) => set({ nickname }),
         setNicknameChangeCooldownUntil: (timestamp: number | null) => set({ nicknameChangeCooldownUntil: timestamp }),
         setLastNicknameUpdateServerTime: (timestamp: number | null) => set({ lastNicknameUpdateServerTime: timestamp }),

@@ -21,6 +21,7 @@ export const UserPage = () => {
     setLastNicknameUpdateServerTime,
     messagesCount: storeMessagesCount,
     threadsCount: storeThreadsCount,
+    setUserId,
   } = useSessionStore();
 
   const {
@@ -38,6 +39,12 @@ export const UserPage = () => {
   const [initialized, setInitialized] = useState(false);
   const messagesCount = storeMessagesCount;
   const threadsCount = storeThreadsCount;
+
+  useEffect(() => {
+    if (userData?.ID && userId === null) {
+      setUserId(userData.ID);
+    }
+  }, [userData, userId, setUserId]);
 
   useEffect(() => {
     if (userData && !initialized) {
@@ -104,6 +111,18 @@ export const UserPage = () => {
     onError: (error) => {
       console.error("Failed to update nickname:", error);
     },
+  });
+
+  useWebSocketEvent("thread_created", (data) => {
+    if (data.created_by === userId) {
+      useSessionStore.getState().incrementThreadsCount();
+    }
+  });
+
+  useWebSocketEvent("message_created", (data) => {
+    if (data.user_id === userId) {
+      useSessionStore.getState().incrementMessagesCount();
+    }
   });
 
   useWebSocketEvent("nickname_updated", (rawData) => {

@@ -11,6 +11,7 @@ export type SessionState = {
   lastMessageCreationServerTime: number | null;
   messagesCount: number;
   threadsCount: number;
+  setUserId: (id: number | null) => void;
   setNickname: (nickname: string) => void;
   setNicknameChangeCooldownUntil: (timestamp: number | null) => void;
   setLastNicknameUpdateServerTime: (timestamp: number | null) => void;
