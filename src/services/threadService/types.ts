@@ -45,3 +45,12 @@ export type GetThreadsByBoardIDResponse = {
 export type GetTopThreadsResponse = GetThreadsByBoardIDResponse;
 
 export type GetThreadByIDResponse = Thread;
+
+export type CheckThreadAuthorParams = {
+  thread_id: number;
+  session_key: string;
+};
+
+export type CheckThreadAuthorResponse = {
+  is_author: boolean;
+};

@@ -1,6 +1,8 @@
 import type { Thread } from "@types";
 import { apiClient } from "../api";
 import type {
+  CheckThreadAuthorParams,
+  CheckThreadAuthorResponse,
   CreateThreadParams,
   GetThreadByIDParams,
   GetThreadByIDResponse,
@@ -58,6 +60,13 @@ export const threadService = {
 
   getThreadByID: async (params: GetThreadByIDParams): Promise<GetThreadByIDResponse> => {
     const res = await apiClient.get(`/threads/thread/${params.id}`);
+    return res.data;
+  },
+
+  checkThreadAuthor: async (params: CheckThreadAuthorParams): Promise<CheckThreadAuthorResponse> => {
+    const res = await apiClient.get(`/threads/check-author/${params.thread_id}`, {
+      params: { session_key: params.session_key },
+    });
     return res.data;
   },
 };

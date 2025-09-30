@@ -13,6 +13,7 @@ export type Message = {
   created_at: string;
   updated_at: string;
   author_nickname: string;
+  is_author: boolean;
 };
 
 export type User = {

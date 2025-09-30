@@ -19,15 +19,21 @@ export const ThreadPage = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [replyTo, setReplyTo] = useState<{ id: number; author: string } | null>(null);
+  const [showAsAuthor, setShowAsAuthor] = useState(false);
+  const [isThreadAuthor, setIsThreadAuthor] = useState(false);
+  const [_authorshipError, _setAuthorshipError] = useState<Error | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   const {
     sessionKey,
     messageCreationCooldownUntil,
     setMessageCreationCooldownUntil,
     setLastMessageCreationServerTime,
   } = useSessionStore();
+
   const threadIdNumber = threadId ? Number.parseInt(threadId, 10) : null;
   const isValidThreadId = threadIdNumber !== null && !Number.isNaN(threadIdNumber);
+
   const {
     data: threadData,
     isLoading: isLoadingThread,
@@ -41,6 +47,7 @@ export const ThreadPage = () => {
       enabled: isValidThreadId,
     },
   );
+
   const {
     data: messagesData,
     isLoading: isLoadingMessages,
@@ -54,6 +61,7 @@ export const ThreadPage = () => {
       enabled: !!threadData?.id,
     },
   );
+
   const { data: cooldownData, isError: isCooldownError } = useService<"message", "getMessageCooldown">(
     "message",
     "getMessageCooldown",
@@ -62,10 +70,25 @@ export const ThreadPage = () => {
       enabled: !!sessionKey,
     },
   );
+
+  const { data: authorshipData, error: authorshipErrorFromHook } = useService<"thread", "checkThreadAuthor">(
+    "thread",
+    "checkThreadAuthor",
+    sessionKey && threadData?.id
+      ? {
+          thread_id: threadData.id,
+          session_key: sessionKey,
+        }
+      : undefined,
+    {
+      enabled: !!sessionKey && !!threadData?.id,
+    },
+  );
+
   const createMessageMutation = useServiceMutation<
     "message",
     "createMessage",
-    { thread_id: number; content: string; parent_id?: number | null },
+    { thread_id: number; content: string; parent_id?: number | null; show_as_author: boolean },
     Message
   >("message", "createMessage", {
     onSuccess: (_data) => {
@@ -74,12 +97,32 @@ export const ThreadPage = () => {
       setMessageCreationCooldownUntil(Date.now() + 10000);
       setMessageContent("");
       setReplyTo(null);
+      setShowAsAuthor(false);
       setCurrentPage(1);
     },
     onError: (error) => {
       console.error("Failed to create message:", error);
     },
   });
+
+  useEffect(() => {
+    if (authorshipErrorFromHook) {
+      console.error("Authorship check error:", authorshipErrorFromHook);
+      setIsThreadAuthor(false);
+    } else if (authorshipData) {
+      setIsThreadAuthor(authorshipData.is_author);
+    } else {
+      setIsThreadAuthor(false);
+    }
+  }, [authorshipData, authorshipErrorFromHook]);
+
+  useEffect(() => {
+    if (isThreadAuthor) {
+      setShowAsAuthor(true);
+    } else {
+      setShowAsAuthor(false);
+    }
+  }, [isThreadAuthor]);
 
   useEffect(() => {
     if (cooldownData?.lastMessageCreationUnix) {
@@ -97,15 +140,12 @@ export const ThreadPage = () => {
     if (data.event === "message_created" && typeof data.timestamp === "number") {
       const serverTimestamp = data.timestamp;
       const cooldownEndMs = serverTimestamp * 1000 + 10000;
-
       const currentUserID = useSessionStore.getState().userId;
-
       if (data.user_id === currentUserID) {
         useSessionStore.getState().setLastMessageCreationServerTime(serverTimestamp);
         useSessionStore.getState().setMessageCreationCooldownUntil(cooldownEndMs);
         useSessionStore.getState().incrementMessagesCount();
       }
-
       refetchMessages();
     }
   });
@@ -158,7 +198,7 @@ export const ThreadPage = () => {
     return <Loading />;
   }
 
-  if (!threadData) {
+  if (!(threadData && messagesData && authorshipData && cooldownData)) {
     return <ErrorScreen />;
   }
 
@@ -169,6 +209,7 @@ export const ThreadPage = () => {
       thread_id: threadData.id,
       content: messageContent,
       parent_id: replyTo?.id ?? null,
+      show_as_author: isThreadAuthor && showAsAuthor,
     });
   };
 
@@ -183,6 +224,24 @@ export const ThreadPage = () => {
   const handleCancelReply = () => {
     setReplyTo(null);
     setMessageContent("");
+  };
+
+  const toggleShowAsAuthor = () => {
+    setShowAsAuthor((prev) => !prev);
+  };
+
+  const handleLabelKeyDown = (e: React.KeyboardEvent<HTMLLabelElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleShowAsAuthor();
+    }
+  };
+
+  const handleSwitchKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleShowAsAuthor();
+    }
   };
 
   const renderReplyIndicator = () => {
@@ -252,6 +311,50 @@ export const ThreadPage = () => {
                       helperText={`${messageContent.length}/9999`}
                     />
                   </div>
+
+                  {isThreadAuthor && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <label
+                        htmlFor="show-as-author"
+                        className="cursor-pointer text-tw-light-text-primary dark:text-tw-dark-text-primary select-none"
+                        onClick={toggleShowAsAuthor}
+                        onKeyDown={handleLabelKeyDown}
+                        aria-checked={showAsAuthor}
+                      >
+                        Показать как автора
+                      </label>
+                      <div
+                        onClick={toggleShowAsAuthor}
+                        onKeyDown={handleSwitchKeyDown}
+                        tabIndex={0}
+                        role="switch"
+                        aria-checked={showAsAuthor}
+                        className={`relative inline-flex h-6 w-11 cursor-pointer rounded-full border-2 transition-all duration-200 ease-in-out
+                          ${
+                            showAsAuthor
+                              ? "bg-tw-mono-900 dark:bg-tw-mono-100 border-tw-mono-900 dark:border-tw-mono-100"
+                              : "bg-tw-mono-300 dark:bg-tw-mono-700 border-tw-mono-300 dark:border-tw-mono-700"
+                          }`}
+                        aria-label="Показать сообщение как автор треда"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`inline-block h-5 w-5 transform rounded-full bg-tw-mono-white dark:bg-tw-mono-900 shadow transition-transform duration-200 ease-in-out
+                            ${showAsAuthor ? "translate-x-5" : "translate-x-0"}`}
+                        />
+                      </div>
+                      <input
+                        id="show-as-author"
+                        type="checkbox"
+                        className="sr-only"
+                        checked={showAsAuthor}
+                        onChange={() => {}}
+                        tabIndex={-1}
+                        aria-hidden="true"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex flex-col lg:flex-row gap-3 lg:gap-0 justify-between items-center">
                     {isCooldown && (
                       <div className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">

@@ -14,7 +14,7 @@ export const HomePage = () => {
   const {
     data: threadsData,
     isLoading,
-    isError,
+    isError: isThreadsError,
     refetch,
   } = useService<"thread", "getTopThreads">(
     "thread",
@@ -47,7 +47,7 @@ export const HomePage = () => {
     return <Loading />;
   }
 
-  if (isBoardsError || isError) {
+  if (isBoardsError || isThreadsError) {
     return <ErrorScreen />;
   }
 
@@ -103,7 +103,7 @@ export const HomePage = () => {
           <ThreadSort currentSort={sort} onChange={setSort} />
 
           <div className="bg-tw-light-surface dark:bg-tw-dark-surface p-4 rounded border border-tw-light-divider dark:border-tw-dark-divider">
-            {isError ? (
+            {isThreadsError ? (
               <p className="text-tw-light-text-secondary dark:text-tw-dark-text-secondary text-sm">
                 Ошибка загрузки тредов
               </p>

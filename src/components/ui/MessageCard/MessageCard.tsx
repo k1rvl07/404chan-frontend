@@ -1,5 +1,5 @@
 "use client";
-import { ClockCircleOutlined, CloseOutlined, MessageOutlined, UserOutlined } from "@ant-design/icons";
+import { ClockCircleOutlined, CloseOutlined, MessageOutlined, StarOutlined, UserOutlined } from "@ant-design/icons";
 import { AppContainer, Button } from "@components";
 import { useService } from "@hooks";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -64,18 +64,15 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
         closeModal();
       }
     };
-
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         closeModal();
       }
     };
-
     if (showModal) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleEsc);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEsc);
@@ -104,6 +101,20 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
             <UserOutlined className="text-xs" />
             {message.author_nickname || "Аноним"}
           </span>
+          {message.is_author && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium 
+              bg-tw-mono-100 dark:bg-tw-mono-800 
+              border border-tw-mono-300 dark:border-tw-mono-700
+              text-tw-mono-900 dark:text-tw-mono-50
+              rounded-full
+              shadow-sm
+              transition-colors duration-150"
+            >
+              <StarOutlined className="text-xs" />
+              Автор
+            </span>
+          )}
           <span className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
             ID: #{message.id}
           </span>
@@ -130,6 +141,7 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
           )}
         </div>
       </div>
+
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <AppContainer>
@@ -155,9 +167,31 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
                   Загрузка...
                 </div>
               ) : isParentError ? (
-                <div className="p-6 text-center text-sm text-red-500">Не удалось загрузить сообщение</div>
+                <div className="p-6 text-center text-sm text-tw-light-error dark:text-tw-dark-error">
+                  Не удалось загрузить сообщение
+                </div>
               ) : parentMessage ? (
                 <div className="p-4 space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="flex items-center gap-1 text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary">
+                      <UserOutlined className="text-xs" />
+                      {parentMessage.author_nickname || "Аноним"}
+                    </span>
+                    {parentMessage.is_author && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium 
+        bg-tw-mono-100 dark:bg-tw-mono-800 
+        border border-tw-mono-300 dark:border-tw-mono-700
+        text-tw-mono-900 dark:text-tw-mono-50
+        rounded-full
+        shadow-sm
+        transition-colors duration-150"
+                      >
+                        <StarOutlined className="text-xs" />
+                        Автор
+                      </span>
+                    )}
+                  </div>
                   <div className="text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary break-words whitespace-pre-wrap leading-relaxed">
                     {parentMessage.content}
                   </div>
@@ -167,7 +201,9 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
                   </div>
                 </div>
               ) : (
-                <div className="p-6 text-center text-sm text-red-500">Сообщение не найдено</div>
+                <div className="p-6 text-center text-sm text-tw-light-error dark:text-tw-dark-error">
+                  Сообщение не найдено
+                </div>
               )}
             </div>
           </AppContainer>

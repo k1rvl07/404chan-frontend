@@ -17,6 +17,7 @@ export type CreateMessageParams = {
   content: string;
   session_key: string;
   parent_id?: number | null;
+  show_as_author: boolean;
 };
 
 export type GetMessageByThreadIDParams = {
