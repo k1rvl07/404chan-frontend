@@ -1,4 +1,5 @@
 "use client";
+
 import { AppContainer, ErrorScreen, Loading, MessageCard } from "@components";
 import { Button, Textarea } from "@components";
 import { Pagination } from "@components";
@@ -21,7 +22,6 @@ export const ThreadPage = () => {
   const [replyTo, setReplyTo] = useState<{ id: number; author: string } | null>(null);
   const [showAsAuthor, setShowAsAuthor] = useState(false);
   const [isThreadAuthor, setIsThreadAuthor] = useState(false);
-  const [_authorshipError, _setAuthorshipError] = useState<Error | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -62,26 +62,32 @@ export const ThreadPage = () => {
     },
   );
 
+  const shouldFetchCooldown = !!sessionKey;
   const { data: cooldownData, isError: isCooldownError } = useService<"message", "getMessageCooldown">(
     "message",
     "getMessageCooldown",
-    sessionKey ? { session_key: sessionKey } : undefined,
+    shouldFetchCooldown ? { session_key: sessionKey } : undefined,
     {
-      enabled: !!sessionKey,
+      enabled: shouldFetchCooldown,
     },
   );
 
-  const { data: authorshipData, error: authorshipErrorFromHook } = useService<"thread", "checkThreadAuthor">(
+  const shouldCheckAuthorship = !!sessionKey && !!threadData?.id;
+  const {
+    data: authorshipData,
+    error: authorshipErrorFromHook,
+    isError: isAuthorshipError,
+  } = useService<"thread", "checkThreadAuthor">(
     "thread",
     "checkThreadAuthor",
-    sessionKey && threadData?.id
+    shouldCheckAuthorship
       ? {
           thread_id: threadData.id,
           session_key: sessionKey,
         }
       : undefined,
     {
-      enabled: !!sessionKey && !!threadData?.id,
+      enabled: shouldCheckAuthorship,
     },
   );
 
@@ -106,7 +112,7 @@ export const ThreadPage = () => {
   });
 
   useEffect(() => {
-    if (authorshipErrorFromHook) {
+    if (isAuthorshipError) {
       console.error("Authorship check error:", authorshipErrorFromHook);
       setIsThreadAuthor(false);
     } else if (authorshipData) {
@@ -114,14 +120,10 @@ export const ThreadPage = () => {
     } else {
       setIsThreadAuthor(false);
     }
-  }, [authorshipData, authorshipErrorFromHook]);
+  }, [authorshipData, isAuthorshipError, authorshipErrorFromHook]);
 
   useEffect(() => {
-    if (isThreadAuthor) {
-      setShowAsAuthor(true);
-    } else {
-      setShowAsAuthor(false);
-    }
+    setShowAsAuthor(isThreadAuthor);
   }, [isThreadAuthor]);
 
   useEffect(() => {
@@ -186,7 +188,13 @@ export const ThreadPage = () => {
     notFound();
   }
 
-  if (isThreadError || isMessagesError || isCooldownError) {
+  const hasError =
+    isThreadError ||
+    isMessagesError ||
+    (shouldCheckAuthorship && isAuthorshipError) ||
+    (shouldFetchCooldown && isCooldownError);
+
+  if (hasError) {
     const status = getErrorStatus(threadError || undefined);
     if (status === 404) {
       notFound();
@@ -194,12 +202,12 @@ export const ThreadPage = () => {
     return <ErrorScreen />;
   }
 
-  if (isLoadingThread) {
-    return <Loading />;
-  }
+  const requiredDataLoaded = threadData != null && messagesData != null;
+  const optionalDataLoaded =
+    (!shouldCheckAuthorship || authorshipData != null) && (!shouldFetchCooldown || cooldownData != null);
 
-  if (!(threadData && messagesData && authorshipData && cooldownData)) {
-    return <ErrorScreen />;
+  if (isLoadingThread || (threadData && isLoadingMessages) || !requiredDataLoaded || !optionalDataLoaded) {
+    return <Loading />;
   }
 
   const handleCreateMessage = async (e: FormEvent) => {
