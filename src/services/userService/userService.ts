@@ -1,6 +1,11 @@
 import type { User } from "@types";
 import { apiClient } from "../api";
-import type { GetCooldownResponse, GetUserBySessionKeyParams, UpdateNicknameParams } from "./types";
+import type {
+  GetCooldownResponse,
+  GetUserBySessionKeyParams,
+  NicknameUpdateResponse,
+  UpdateNicknameParams,
+} from "./types";
 
 export const userService = {
   getUserBySessionKey: async (params: GetUserBySessionKeyParams): Promise<User> => {

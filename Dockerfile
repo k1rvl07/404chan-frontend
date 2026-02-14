@@ -1,4 +1,4 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -7,4 +7,6 @@ RUN npm ci
 
 COPY . .
 
-CMD ["sleep", "infinity"]
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

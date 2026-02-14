@@ -1,3 +1,5 @@
+import { FileUploader } from "./FileUploader";
+
 export { Loading } from "./Loading";
 export { ThreadCard } from "./ThreadCard";
 export { Input } from "./Input";
@@ -6,3 +8,6 @@ export { Textarea } from "./Textarea";
 export { MessageCard } from "./MessageCard";
 export { Pagination } from "./Pagination";
 export { ThreadSort } from "./ThreadSort";
+export { FileUploader } from "./FileUploader";
+export { AttachmentList } from "./AttachmentList";
+export { ImageModal } from "./ImageModal";

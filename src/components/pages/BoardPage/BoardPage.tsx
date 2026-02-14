@@ -2,11 +2,13 @@
 import { AppContainer, ErrorPage, ErrorScreen, Loading, ThreadCard } from "@components";
 import { Button, Textarea } from "@components";
 import { Pagination } from "@components";
-import { ThreadSort } from "@components";
+import { FileUploader, ThreadSort } from "@components";
 import { useService, useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
+import { useUnmount } from "@hooks";
+import { uploadService } from "@services";
 import { useSessionStore } from "@stores";
-import type { Thread } from "@types";
+import type { Thread, UploadedFile } from "@types";
 import type { SortOption } from "@types";
 import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
@@ -19,6 +21,7 @@ export const BoardPage = () => {
   const slug = params.slug as string;
   const [threadTitle, setThreadTitle] = useState("");
   const [threadContent, setThreadContent] = useState("");
+  const [threadAttachments, setThreadAttachments] = useState<UploadedFile[]>([]);
   const [sort, setSort] = useState<SortOption>("new");
   const [isCooldown, setIsCooldown] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -58,18 +61,36 @@ export const BoardPage = () => {
   const createThreadMutation = useServiceMutation<
     "thread",
     "createThread",
-    { board_id: number; title: string; content: string },
+    { board_id: number; title: string; content: string; attachment_ids?: string[] },
     Thread
   >("thread", "createThread", {
     onSuccess: (data) => {
       const serverTimestamp = Math.floor(Date.now() / 1000);
       setLastThreadCreationServerTime(serverTimestamp);
       setThreadCreationCooldownUntil(Date.now() + 300000);
+      setThreadAttachments([]);
       router.push(`/boards/${slug}/threads/${data.id}`);
     },
     onError: (error) => {
       console.error("Failed to create thread:", error);
     },
+  });
+
+  const cleanupTemporaryAttachments = async () => {
+    if (!uploadService?.deleteTemporary) return;
+    for (const file of threadAttachments) {
+      try {
+        await uploadService.deleteTemporary({ file_id: file.id });
+      } catch (err) {
+        console.error("Failed to cleanup temporary attachment:", file.id, err);
+      }
+    }
+  };
+
+  useUnmount(() => {
+    if (threadAttachments.length > 0) {
+      cleanupTemporaryAttachments();
+    }
   });
 
   useEffect(() => {
@@ -156,10 +177,24 @@ export const BoardPage = () => {
   const handleCreateThread = async (e: FormEvent) => {
     e.preventDefault();
     if (!(board && sessionKey) || threadTitle.trim().length < 3 || threadContent.trim().length < 3) return;
+
+    let confirmedAttachments = threadAttachments;
+    if (threadAttachments.length > 0) {
+      try {
+        const confirmResult = await uploadService.confirmFiles({
+          file_ids: threadAttachments.map((f) => f.id),
+        });
+        confirmedAttachments = confirmResult.files;
+      } catch (err) {
+        console.error("Failed to confirm attachments:", err);
+      }
+    }
+
     await createThreadMutation.mutateAsync({
       board_id: board.id,
       title: threadTitle,
       content: threadContent,
+      attachment_ids: confirmedAttachments.length > 0 ? confirmedAttachments.map((f) => f.id) : undefined,
     });
   };
 
@@ -238,6 +273,13 @@ export const BoardPage = () => {
                         helperText={`${threadContent.length}/999`}
                       />
                     </div>
+                    <FileUploader
+                      files={threadAttachments}
+                      onFilesChange={setThreadAttachments}
+                      maxFiles={5}
+                      maxSizeMB={10}
+                      disabled={isCooldown}
+                    />
                     <div className="flex flex-col lg:flex-row gap-3 lg:gap-0 justify-between items-center">
                       {isCooldown && (
                         <div className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">

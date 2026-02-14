@@ -21,6 +21,7 @@ export const threadService = {
       {
         title: params.title,
         content: params.content,
+        attachment_ids: params.attachment_ids,
       },
       {
         params: { session_key: params.session_key },

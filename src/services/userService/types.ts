@@ -10,3 +10,13 @@ export type UpdateNicknameParams = {
 export type GetCooldownResponse = {
   lastNicknameChangeUnix: number | null;
 };
+
+export type NicknameUpdateResponse = {
+  ID: number;
+  Nickname: string;
+  CreatedAt: string;
+  SessionKey: string;
+  MessagesCount: number;
+  ThreadsCount: number;
+  LastNicknameChangeUnix: number;
+};

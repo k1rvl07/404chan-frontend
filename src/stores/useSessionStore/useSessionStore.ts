@@ -10,6 +10,7 @@ export const useSessionStore = create<SessionState>()(
         userId: null,
         nickname: "Аноним",
         createdAt: null,
+        sessionStartedAt: null,
         nicknameChangeCooldownUntil: null,
         lastNicknameUpdateServerTime: null,
         threadCreationCooldownUntil: null,
@@ -37,6 +38,7 @@ export const useSessionStore = create<SessionState>()(
             userId: null,
             nickname: "Аноним",
             createdAt: null,
+            sessionStartedAt: null,
             nicknameChangeCooldownUntil: null,
             lastNicknameUpdateServerTime: null,
             threadCreationCooldownUntil: null,
@@ -51,7 +53,24 @@ export const useSessionStore = create<SessionState>()(
       {
         name: "404chan-session",
         storage: createJSONStorage(() => localStorage),
-        skipHydration: true,
+        migrate: (persistedState: unknown) => {
+          const state = persistedState as Record<string, unknown>;
+          if (state && typeof state === "object") {
+            if (!("nickname" in state)) {
+              state.nickname = "Аноним";
+            }
+            if (!("userId" in state)) {
+              state.userId = null;
+            }
+            if (!("createdAt" in state)) {
+              state.createdAt = null;
+            }
+            if (!("sessionStartedAt" in state)) {
+              state.sessionStartedAt = null;
+            }
+          }
+          return persistedState as SessionState;
+        },
       },
     ),
   ),

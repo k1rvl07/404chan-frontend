@@ -3,6 +3,7 @@ export type SessionState = {
   userId: number | null;
   nickname: string;
   createdAt: string | null;
+  sessionStartedAt: string | null;
   nicknameChangeCooldownUntil: number | null;
   lastNicknameUpdateServerTime: number | null;
   threadCreationCooldownUntil: number | null;

@@ -22,6 +22,8 @@ export const UserPage = () => {
     messagesCount: storeMessagesCount,
     threadsCount: storeThreadsCount,
     setUserId,
+    createdAt,
+    sessionStartedAt,
   } = useSessionStore();
 
   const {
@@ -36,27 +38,25 @@ export const UserPage = () => {
     { enabled: !!sessionKey },
   );
 
-  const [initialized, setInitialized] = useState(false);
   const messagesCount = storeMessagesCount;
   const threadsCount = storeThreadsCount;
 
   useEffect(() => {
-    if (userData?.ID && userId === null) {
-      setUserId(userData.ID);
+    if (userData?.id && userId === null) {
+      setUserId(userData.id);
     }
   }, [userData, userId, setUserId]);
 
   useEffect(() => {
-    if (userData && !initialized) {
-      useSessionStore.getState().setMessagesCount(userData.MessagesCount);
-      useSessionStore.getState().setThreadsCount(userData.ThreadsCount);
-      setInitialized(true);
+    if (userData) {
+      useSessionStore.getState().setMessagesCount(userData.messages_count);
+      useSessionStore.getState().setThreadsCount(userData.threads_count);
     }
-  }, [userData, initialized]);
+  }, [userData]);
 
   const [sessionDuration, setSessionDuration] = useState("00:00:00");
   const [isEditing, setIsEditing] = useState(false);
-  const [newNickname, setNewNickname] = useState(nickname);
+  const [newNickname, setNewNickname] = useState(nickname || "");
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isCooldown, setIsCooldown] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -102,7 +102,7 @@ export const UserPage = () => {
   >("user", "updateNickname", {
     onSuccess: (data) => {
       const now = Math.floor(Date.now() / 1000);
-      setNickname(data.Nickname);
+      setNickname(data.nickname);
       setNicknameChangeCooldownUntil(Date.now() + 60000);
       setLastNicknameUpdateServerTime(now);
       setIsEditing(false);
@@ -139,7 +139,7 @@ export const UserPage = () => {
   });
 
   useEffect(() => {
-    setNewNickname(nickname);
+    setNewNickname(nickname || "");
   }, [nickname]);
 
   const handleNicknameChange = () => {
@@ -181,19 +181,20 @@ export const UserPage = () => {
   };
 
   const handleCancelEdit = () => {
-    setNewNickname(nickname);
+    setNewNickname(nickname || "");
     setIsEditing(false);
     setNicknameError(null);
   };
 
   useEffect(() => {
-    if (!userData?.SessionStartedAt) {
+    const sessionStartAt = sessionStartedAt || userData?.session_started_at;
+    if (!sessionStartAt) {
       setSessionDuration("00:00:00");
       return;
     }
     const updateDuration = () => {
       try {
-        const start = new Date(userData.SessionStartedAt).getTime();
+        const start = new Date(sessionStartAt).getTime();
         const now = Date.now();
         const elapsed = now - start;
         const totalSeconds = Math.floor(elapsed / 1000);
@@ -212,12 +213,13 @@ export const UserPage = () => {
     updateDuration();
     const interval = setInterval(updateDuration, 1000);
     return () => clearInterval(interval);
-  }, [userData?.SessionStartedAt]);
+  }, [sessionStartedAt, userData?.session_started_at]);
 
   const formatAccountCreatedAt = () => {
-    if (!userData?.CreatedAt) return "Неизвестно";
+    const accountCreatedAt = createdAt || userData?.created_at;
+    if (!accountCreatedAt) return "Неизвестно";
     try {
-      return new Date(userData.CreatedAt).toLocaleString();
+      return new Date(accountCreatedAt).toLocaleString();
     } catch {
       return "Неверный формат даты";
     }
@@ -298,7 +300,7 @@ export const UserPage = () => {
             <p className="text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
               Ник может содержать только буквы и цифры
             </p>
-            {nicknameError && <p className="text-tw-light-error dark:text-tw-dark-error text-sm">{nicknameError}</p>}
+            {nicknameError && <p className="tw-light-error dark:tw-dark-error text-sm">{nicknameError}</p>}
             <li>
               <strong className="font-medium">Дата создания аккаунта:</strong> {formatAccountCreatedAt()}
             </li>

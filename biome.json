@@ -16,6 +16,10 @@
       },
       "correctness": {
         "noUnusedVariables": "error"
+      },
+      "a11y": {
+        "useButtonType": "off",
+        "noPositiveTabindex": "off"
       }
     },
     "ignore": ["**/node_modules/**", "**/dist/**", "**/.next/**", "**/public/**"]

@@ -16,6 +16,7 @@ export const messageService = {
         content: params.content,
         parent_id: params.parent_id,
         show_as_author: params.show_as_author,
+        attachment_ids: params.attachment_ids,
       },
       {
         params: { session_key: params.session_key },

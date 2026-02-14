@@ -7,4 +7,6 @@ export type Board = {
   updated_at: string;
 };
 
-export type GetBoardsResponse = Board[];
+export type GetBoardsResponse = {
+  boards: Board[];
+};

@@ -1,36 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 404chan Frontend
 
-## Getting Started
+Анонимный имиджборд на Next.js 15 + React 19 + TypeScript.
 
-First, run the development server:
+## Технологии
+
+- **Next.js 15** — React-фреймворк (App Router)
+- **React 19** — UI-библиотека
+- **TypeScript 5** — Типизация
+- **Tailwind CSS** — Стилизация
+- **Ant Design 5** — Базовые UI-компоненты
+- **Biome** — Линтер и форматтер
+- **Zustand** — Глобальное состояние
+- **TanStack Query** — Server state
+- **Axios** — HTTP-клиент
+
+## Быстрый старт
+
+### Требования
+
+- Node.js 20+
+
+### Установка
 
 ```bash
+cd 404chan-frontend
+
+# Устанавливаем зависимости
+npm install
+
+# Запуск в режиме разработки
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Продакшен сборка
+npm run build
+
+# Запуск продакшена
+npm run start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Структура проекта
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                    # App Router
+│   ├── layout.tsx         # Главный layout
+│   └── page.tsx           # Главная страница
+├── components/
+│   ├── layout/            # Layout компоненты
+│   │   ├── Header.tsx
+│   │   ├── Footer.tsx
+│   │   └── AppContainer.tsx
+│   ├── pages/             # Компоненты страниц
+│   │   ├── HomePage.tsx
+│   │   ├── BoardPage.tsx
+│   │   └── ThreadPage.tsx
+│   ├── screens/           # Экраны
+│   │   ├── SplashScreen.tsx
+│   │   └── ErrorScreen.tsx
+│   └── ui/                # Базовые UI компоненты
+│       ├── Button.tsx
+│       ├── Input.tsx
+│       └── MessageCard.tsx
+├── stores/                # Zustand сторы
+├── services/              # API клиенты
+├── providers/             # React providers
+├── hooks/                 # Кастомные хуки
+├── utils/                 # Утилиты
+├── types/                 # TypeScript типы
+└── styles/                # Глобальные стили
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Импорты
 
-## Learn More
+Используйте path aliases через barrel exports:
 
-To learn more about Next.js, take a look at the following resources:
+```typescript
+import { Button } from '@components';
+import { useSessionStore } from '@stores';
+import { api } from '@services';
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Линтинг
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Проверка
+npm run biome
 
-## Deploy on Vercel
+# Автоисправление
+npm run biome -- --write
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Бэкенд доступен по адресу: `http://localhost:8080`
+
+## Переменные окружения
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+## Лицензия
+
+MIT

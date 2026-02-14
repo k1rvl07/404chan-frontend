@@ -1,12 +1,15 @@
 "use client";
 
-import { AppContainer, ErrorScreen, Loading, MessageCard } from "@components";
-import { Button, Textarea } from "@components";
+import { AppContainer, ErrorScreen, ImageModal, Loading, MessageCard } from "@components";
+import { AttachmentList, Button, Textarea } from "@components";
 import { Pagination } from "@components";
+import { FileUploader } from "@components";
 import { useService, useServiceMutation } from "@hooks";
 import { useWebSocketEvent } from "@hooks";
+import { useUnmount } from "@hooks";
+import { uploadService } from "@services";
 import { useSessionStore } from "@stores";
-import type { Message } from "@types";
+import type { Attachment, Message, UploadedFile } from "@types";
 import { getErrorStatus } from "@utils";
 import { notFound } from "next/navigation";
 import { useParams } from "next/navigation";
@@ -22,6 +25,8 @@ export const ThreadPage = () => {
   const [replyTo, setReplyTo] = useState<{ id: number; author: string } | null>(null);
   const [showAsAuthor, setShowAsAuthor] = useState(false);
   const [isThreadAuthor, setIsThreadAuthor] = useState(false);
+  const [messageAttachments, setMessageAttachments] = useState<UploadedFile[]>([]);
+  const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -94,7 +99,13 @@ export const ThreadPage = () => {
   const createMessageMutation = useServiceMutation<
     "message",
     "createMessage",
-    { thread_id: number; content: string; parent_id?: number | null; show_as_author: boolean },
+    {
+      thread_id: number;
+      content: string;
+      parent_id?: number | null;
+      show_as_author: boolean;
+      attachment_ids?: string[];
+    },
     Message
   >("message", "createMessage", {
     onSuccess: (_data) => {
@@ -104,6 +115,7 @@ export const ThreadPage = () => {
       setMessageContent("");
       setReplyTo(null);
       setShowAsAuthor(false);
+      setMessageAttachments([]);
       setCurrentPage(1);
     },
     onError: (error) => {
@@ -184,6 +196,22 @@ export const ThreadPage = () => {
     };
   }, [messageCreationCooldownUntil, setMessageCreationCooldownUntil]);
 
+  const cleanupTemporaryAttachments = async () => {
+    for (const file of messageAttachments) {
+      try {
+        await uploadService.deleteTemporary({ file_id: file.id });
+      } catch (err) {
+        console.error("Failed to cleanup temporary attachment:", file.id, err);
+      }
+    }
+  };
+
+  useUnmount(() => {
+    if (messageAttachments.length > 0) {
+      cleanupTemporaryAttachments();
+    }
+  });
+
   if (!isValidThreadId) {
     notFound();
   }
@@ -213,11 +241,25 @@ export const ThreadPage = () => {
   const handleCreateMessage = async (e: FormEvent) => {
     e.preventDefault();
     if (!(threadData && sessionKey) || messageContent.trim().length < 1) return;
+
+    let confirmedAttachments = messageAttachments;
+    if (messageAttachments.length > 0) {
+      try {
+        const confirmResult = await uploadService.confirmFiles({
+          file_ids: messageAttachments.map((f) => f.id),
+        });
+        confirmedAttachments = confirmResult.files;
+      } catch (err) {
+        console.error("Failed to confirm attachments:", err);
+      }
+    }
+
     await createMessageMutation.mutateAsync({
       thread_id: threadData.id,
       content: messageContent,
       parent_id: replyTo?.id ?? null,
       show_as_author: isThreadAuthor && showAsAuthor,
+      attachment_ids: confirmedAttachments.length > 0 ? confirmedAttachments.map((f) => f.id) : undefined,
     });
   };
 
@@ -277,7 +319,12 @@ export const ThreadPage = () => {
     <main className="min-h-screen">
       <AppContainer className="py-6">
         <section className="space-y-6">
-          <h2 className="text-2xl font-bold mb-6 text-tw-mono-black dark:text-tw-mono-white">{threadData.title}</h2>
+          <h2 className="text-2xl font-bold text-tw-mono-black dark:text-tw-mono-white">{threadData.title}</h2>
+          {threadData.attachments && threadData.attachments.length > 0 && (
+            <div className="mt-4">
+              <AttachmentList attachments={threadData.attachments} onPreviewClick={setPreviewFile} maxVisible={4} />
+            </div>
+          )}
           <p className="text-tw-light-text-primary dark:text-tw-dark-text-primary leading-relaxed max-w-2xl">
             {threadData.content}
           </p>
@@ -319,6 +366,14 @@ export const ThreadPage = () => {
                       helperText={`${messageContent.length}/9999`}
                     />
                   </div>
+
+                  <FileUploader
+                    files={messageAttachments}
+                    onFilesChange={setMessageAttachments}
+                    maxFiles={5}
+                    maxSizeMB={10}
+                    disabled={isCooldown || createMessageMutation.isPending}
+                  />
 
                   {isThreadAuthor && (
                     <div className="flex items-center gap-3 text-sm">
@@ -405,6 +460,8 @@ export const ThreadPage = () => {
             )}
           </div>
         </section>
+
+        {previewFile && <ImageModal file={previewFile} onClose={() => setPreviewFile(null)} />}
       </AppContainer>
     </main>
   );

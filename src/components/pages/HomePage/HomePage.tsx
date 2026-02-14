@@ -26,7 +26,7 @@ export const HomePage = () => {
   );
 
   const {
-    data: boards,
+    data: boardsData,
     isLoading: isLoadingBoards,
     isError: isBoardsError,
   } = useService<"board", "getBoards">("board", "getBoards", undefined, {});
@@ -70,13 +70,13 @@ export const HomePage = () => {
         <section className="max-w-2xl mx-auto mb-12">
           <h3 className="text-xl font-semibold mb-6 text-tw-mono-black dark:text-tw-mono-white text-center">Доски</h3>
 
-          {!boards || boards.length === 0 ? (
+          {!boardsData || boardsData.boards.length === 0 ? (
             <p className="text-center text-tw-light-text-secondary dark:text-tw-dark-text-secondary py-8">
               Нет доступных досок.
             </p>
           ) : (
             <ul className="flex flex-wrap gap-3 justify-center">
-              {boards.map((board) => (
+              {boardsData.boards.map((board) => (
                 <li key={board.id} className="w-[174px] lg:w-[158px]">
                   <Link
                     href={`/boards/${board.slug}`}

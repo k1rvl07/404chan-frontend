@@ -1,8 +1,8 @@
 "use client";
 
-import { HomeOutlined, MoonOutlined, SunOutlined, UserOutlined } from "@ant-design/icons";
 import { AppContainer, Button } from "@components";
 import { useThemeStore } from "@stores";
+import { Home, Moon, Sun, User } from "lucide-react";
 import Link from "next/link";
 
 export const Header = () => {
@@ -24,7 +24,7 @@ export const Header = () => {
                 size="sm"
                 className="py-2 px-2.5 rounded-lg !bg-tw-light-background-default dark:!bg-tw-dark-background-default hover:!bg-tw-mono-200 dark:hover:!bg-tw-mono-800"
               >
-                <HomeOutlined className="text-[14px]" />
+                <Home size={18} />
               </Button>
             </Link>
             <Link href="/user" aria-label="Go to user profile">
@@ -33,7 +33,7 @@ export const Header = () => {
                 size="sm"
                 className="py-2 px-2.5 rounded-lg !bg-tw-light-background-default dark:!bg-tw-dark-background-default hover:!bg-tw-mono-200 dark:hover:!bg-tw-mono-800"
               >
-                <UserOutlined className="text-[14px]" />
+                <User size={18} />
               </Button>
             </Link>
             <Button
@@ -43,7 +43,7 @@ export const Header = () => {
               aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               className="py-2 px-2.5 rounded-lg !bg-tw-light-background-default dark:!bg-tw-dark-background-default hover:!bg-tw-mono-200 dark:hover:!bg-tw-mono-800"
             >
-              {mode === "dark" ? <SunOutlined className="text-[14px]" /> : <MoonOutlined className="text-[14px]" />}
+              {mode === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </Button>
           </div>
         </div>

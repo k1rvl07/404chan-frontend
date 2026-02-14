@@ -1,12 +1,14 @@
 "use client";
-import { ClockCircleOutlined, CloseOutlined, MessageOutlined, StarOutlined, UserOutlined } from "@ant-design/icons";
-import { AppContainer, Button } from "@components";
+import { AppContainer, AttachmentList, Button, ImageModal } from "@components";
 import { useService } from "@hooks";
+import type { Attachment } from "@types";
+import { Clock, MessageCircle, Star, User, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MessageCardProps } from "./types";
 
 export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageCardProps) => {
   const [showModal, setShowModal] = useState<number | null>(null);
+  const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -92,13 +94,13 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
       >
         {replyText && (
           <div className="mb-2 text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary flex items-center">
-            <MessageOutlined className="text-xs mr-1" />
+            <MessageCircle size={14} className="text-xs mr-1" />
             {replyText}
           </div>
         )}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="flex items-center gap-1 text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary">
-            <UserOutlined className="text-xs" />
+            <User size={14} className="text-xs" />
             {message.author_nickname || "Аноним"}
           </span>
           {message.is_author && (
@@ -111,7 +113,7 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
               shadow-sm
               transition-colors duration-150"
             >
-              <StarOutlined className="text-xs" />
+              <Star size={14} className="text-xs" />
               Автор
             </span>
           )}
@@ -119,12 +121,15 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
             ID: #{message.id}
           </span>
         </div>
-        <div className="text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary break-words whitespace-pre-wrap leading-relaxed mb-3">
+        {"attachments" in message && message.attachments && message.attachments.length > 0 && (
+          <AttachmentList attachments={message.attachments} onPreviewClick={setPreviewFile} maxVisible={4} compact />
+        )}
+        <div className="text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary break-words whitespace-pre-wrap leading-relaxed mt-3 mb-3">
           {message.content}
         </div>
-        <div className="flex flex-wrap items-center justify-between text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary gap-y-2">
+        <div className="flex flex-wrap items-center justify-between text-xs text-tw-light-text-secondary dark:text-tw-dark-text-secondary gap-y-2 mt-3">
           <div className="flex items-center gap-1">
-            <ClockCircleOutlined className="text-xs" />
+            <Clock size={14} className="text-xs" />
             {formatDate(message.created_at)}
           </div>
           {onReplyClick && (
@@ -133,17 +138,16 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
               variant="secondary"
               size="sm"
               onClick={() => onReplyClick(message.id)}
-              className="text-xs px-2 py-1 min-w-0"
+              className="text-xs px-2 py-1 min-w-0 flex items-center gap-1"
             >
-              <MessageOutlined className="text-xs mr-1" />
-              Ответить
+              <MessageCircle size={14} className="text-xs ml-1" /> Ответить
             </Button>
           )}
         </div>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-tw-mono-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <AppContainer>
             <div
               ref={modalRef}
@@ -156,10 +160,10 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
                   variant="secondary"
                   size="sm"
                   onClick={closeModal}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  className="text-tw-mono-500 hover:text-tw-mono-700 dark:text-tw-mono-400 dark:hover:text-tw-mono-200"
                   aria-label="Закрыть"
                 >
-                  <CloseOutlined className="text-sm" />
+                  <X size={14} className="text-sm" />
                 </Button>
               </div>
               {isParentLoading ? (
@@ -174,7 +178,7 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
                 <div className="p-4 space-y-3">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="flex items-center gap-1 text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary">
-                      <UserOutlined className="text-xs" />
+                      <User size={14} className="text-xs" />
                       {parentMessage.author_nickname || "Аноним"}
                     </span>
                     {parentMessage.is_author && (
@@ -187,7 +191,7 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
         shadow-sm
         transition-colors duration-150"
                       >
-                        <StarOutlined className="text-xs" />
+                        <Star size={14} className="text-xs" />
                         Автор
                       </span>
                     )}
@@ -196,7 +200,7 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
                     {parentMessage.content}
                   </div>
                   <div className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
-                    <ClockCircleOutlined className="text-xs mr-1" />
+                    <Clock size={14} className="text-xs mr-1" />
                     {formatDate(parentMessage.created_at)}
                   </div>
                 </div>
@@ -209,6 +213,8 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
           </AppContainer>
         </div>
       )}
+
+      {previewFile && <ImageModal file={previewFile} onClose={() => setPreviewFile(null)} />}
     </>
   );
 };

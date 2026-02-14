@@ -5,6 +5,7 @@ export type CreateThreadParams = {
   title: string;
   content: string;
   session_key: string;
+  attachment_ids?: string[];
 };
 
 export type GetThreadsByBoardIDParams = {
