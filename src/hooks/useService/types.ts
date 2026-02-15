@@ -24,4 +24,5 @@ export type ServiceHookResult<S extends ServiceName, M extends ServiceMethod<S>>
 
 export type UseServiceOptions = {
   enabled?: boolean;
+  retry?: number | false;
 };
