@@ -41,6 +41,6 @@ export const messageService = {
   },
   getMessageByID: async ({ id }: { id: number }): Promise<Message> => {
     const res = await apiClient.get(`/messages/message/${id}`);
-    return res.data;
+    return res.data.message;
   },
 };

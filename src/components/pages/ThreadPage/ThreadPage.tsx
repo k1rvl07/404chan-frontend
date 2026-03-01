@@ -28,6 +28,7 @@ export const ThreadPage = () => {
   const [messageAttachments, setMessageAttachments] = useState<UploadedFile[]>([]);
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const {
     sessionKey,
@@ -269,6 +270,7 @@ export const ThreadPage = () => {
 
   const handleReply = (messageId: number, author: string) => {
     setReplyTo({ id: messageId, author });
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const handleCancelReply = () => {
@@ -349,7 +351,11 @@ export const ThreadPage = () => {
           <div className="border-t border-tw-light-divider dark:border-tw-dark-divider my-8" />
           <div className="space-y-4">
             <h3 className="text-xl font-semibold text-tw-mono-black dark:text-tw-mono-white mb-4">Сообщения</h3>
-            <div className="p-4 border border-tw-light-divider dark:border-tw-dark-divider rounded-lg bg-tw-light-background-paper dark:bg-tw-dark-background-paper mb-6">
+            <div
+              className="p-4 border border-tw-light-divider dark:border-tw-dark-divider rounded-lg bg-tw-light-background-paper dark:bg-tw-dark-background-paper mb-6"
+              ref={formRef}
+              id="message-form"
+            >
               <form onSubmit={handleCreateMessage}>
                 {renderReplyIndicator()}
                 <div className="flex flex-col gap-3 pt-2">

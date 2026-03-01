@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { createJSONStorage, persist, subscribeWithSelector } from "zustand/middleware";
 import type { SessionState } from "./types";
 
+const isClient = typeof window !== "undefined";
+
 export const useSessionStore = create<SessionState>()(
   subscribeWithSelector(
     persist<SessionState>(
@@ -52,7 +54,7 @@ export const useSessionStore = create<SessionState>()(
       }),
       {
         name: "404chan-session",
-        storage: createJSONStorage(() => localStorage),
+        storage: createJSONStorage(() => (isClient ? localStorage : ({} as Storage))),
         migrate: (persistedState: unknown) => {
           const state = persistedState as Record<string, unknown>;
           if (state && typeof state === "object") {

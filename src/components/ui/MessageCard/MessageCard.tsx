@@ -13,7 +13,10 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
   const cardRef = useRef<HTMLDivElement>(null);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString)
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+    return date
       .toLocaleDateString("ru-RU", {
         year: "numeric",
         month: "short",
@@ -24,29 +27,7 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
       .replace(".", "");
   };
 
-  const getReplyText = () => {
-    if (message.parent_id !== null && message.parent_id !== undefined) {
-      return (
-        <span>
-          Ответ на сообщение{" "}
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() =>
-              message.parent_id !== null && message.parent_id !== undefined && setShowModal(message.parent_id)
-            }
-            className="text-tw-light-text-link dark:text-tw-dark-text-link font-medium hover:underline cursor-pointer p-0 h-auto hover:!bg-transparent"
-          >
-            #{message.parent_id}
-          </Button>
-        </span>
-      );
-    }
-    return null;
-  };
-
-  const replyText = getReplyText();
+  const hasParent = message.parent_id !== null && message.parent_id !== undefined;
 
   const {
     data: parentMessage,
@@ -59,6 +40,17 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
   const closeModal = useCallback(() => {
     setShowModal(null);
   }, []);
+
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showModal]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -92,10 +84,23 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
           transition-colors duration-150
         `}
       >
-        {replyText && (
+        {hasParent && (
           <div className="mb-2 text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary flex items-center">
             <MessageCircle size={14} className="text-xs mr-1" />
-            {replyText}
+            <span>
+              Ответ на сообщение{" "}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  message.parent_id !== null && message.parent_id !== undefined && setShowModal(message.parent_id)
+                }
+                className="text-tw-light-text-link dark:text-tw-dark-text-link font-medium hover:underline cursor-pointer p-0 h-auto hover:!bg-transparent"
+              >
+                #{message.parent_id}
+              </Button>
+            </span>
           </div>
         )}
         <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -196,11 +201,21 @@ export const MessageCard = ({ message, isReply = false, onReplyClick }: MessageC
                       </span>
                     )}
                   </div>
+                  {"attachments" in parentMessage &&
+                    parentMessage.attachments &&
+                    parentMessage.attachments.length > 0 && (
+                      <AttachmentList
+                        attachments={parentMessage.attachments}
+                        onPreviewClick={setPreviewFile}
+                        maxVisible={4}
+                        compact
+                      />
+                    )}
                   <div className="text-sm text-tw-light-text-primary dark:text-tw-dark-text-primary break-words whitespace-pre-wrap leading-relaxed">
                     {parentMessage.content}
                   </div>
-                  <div className="text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
-                    <Clock size={14} className="text-xs mr-1" />
+                  <div className="flex items-center gap-1 text-sm text-tw-light-text-secondary dark:text-tw-dark-text-secondary">
+                    <Clock size={14} className="text-xs" />
                     {formatDate(parentMessage.created_at)}
                   </div>
                 </div>
