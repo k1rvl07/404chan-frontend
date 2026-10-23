@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
-    "start": "NODE_ENV=production node .next/standalone/server.js",
-    "biome": "biome check --unsafe --write ."
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "biome": "biome check --unsafe --write .",
+    "lint": "biome check ."
   },
   "dependencies": {
     "antd": "^5.26.7",

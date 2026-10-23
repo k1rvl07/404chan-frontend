@@ -14,28 +14,48 @@
 - **TanStack Query** — Server state
 - **Axios** — HTTP-клиент
 
-## Быстрый старт
+## Запуск
 
-### Требования
-
-- Node.js 20+
-
-### Установка
+Основной способ запуска — общий dev-стек из родительского репозитория `404chan`:
 
 ```bash
-cd 404chan-frontend
+git clone --recurse-submodules git@github.com:k1rvl07/404chan.git
+cd 404chan
+make init
+make dev
+```
 
-# Устанавливаем зависимости
-npm install
+### Автономный запуск
 
-# Запуск в режиме разработки
+Требования: Node.js 20+.
+
+```bash
+cp .env.example .env
+npm ci
 npm run dev
+```
 
-# Продакшен сборка
+Сборка и запуск продакшена:
+
+```bash
 npm run build
-
-# Запуск продакшена
 npm run start
+```
+
+Или через Docker:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Для prod-сборки Next.js переменные `NEXT_PUBLIC_*` передаются как build args:
+
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_API_URL=https://api.example.com \
+  --build-arg NEXT_PUBLIC_WS_URL=wss://api.example.com/ws \
+  --build-arg NEXT_PUBLIC_ENV=production \
+  -f Dockerfile.prod -t 404chan-frontend .
 ```
 
 ## Структура проекта
@@ -43,31 +63,18 @@ npm run start
 ```
 src/
 ├── app/                    # App Router
-│   ├── layout.tsx         # Главный layout
-│   └── page.tsx           # Главная страница
 ├── components/
-│   ├── layout/            # Layout компоненты
-│   │   ├── Header.tsx
-│   │   ├── Footer.tsx
-│   │   └── AppContainer.tsx
-│   ├── pages/             # Компоненты страниц
-│   │   ├── HomePage.tsx
-│   │   ├── BoardPage.tsx
-│   │   └── ThreadPage.tsx
-│   ├── screens/           # Экраны
-│   │   ├── SplashScreen.tsx
-│   │   └── ErrorScreen.tsx
-│   └── ui/                # Базовые UI компоненты
-│       ├── Button.tsx
-│       ├── Input.tsx
-│       └── MessageCard.tsx
-├── stores/                # Zustand сторы
-├── services/              # API клиенты
-├── providers/             # React providers
-├── hooks/                 # Кастомные хуки
-├── utils/                 # Утилиты
-├── types/                 # TypeScript типы
-└── styles/                # Глобальные стили
+│   ├── layout/             # Layout-компоненты
+│   ├── pages/              # Компоненты страниц
+│   ├── screens/            # Экраны
+│   └── ui/                 # Базовые UI-компоненты
+├── stores/                 # Zustand-сторы
+├── services/               # API-клиенты
+├── providers/              # React providers
+├── hooks/                  # Кастомные хуки
+├── utils/                  # Утилиты
+├── types/                  # TypeScript-типы
+└── styles/                 # Глобальные стили
 ```
 
 ## Импорты
@@ -83,21 +90,20 @@ import { api } from '@services';
 ## Линтинг
 
 ```bash
-# Проверка
-npm run biome
-
-# Автоисправление
-npm run biome -- --write
+npm run lint          # проверка
+npm run biome         # автоисправление
 ```
 
 ## API
 
-Бэкенд доступен по адресу: `http://localhost:8080`
+Бэкенд по умолчанию доступен по адресу `http://localhost:8080`.
 
 ## Переменные окружения
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws
+NEXT_PUBLIC_ENV=development
 ```
 
 ## Лицензия
